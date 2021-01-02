@@ -78,13 +78,37 @@ par(mfrow = c(1,1))
 #In general, we can fell quite good that we have a useful linear model for predicting the lung capacity of individuals between the ages of 3 and 19.
 ##################Cars data Set######################
 #We can also build a model with the "mtcars" dataset pre-built into R.
-data(cars)
+data(mtcars)
+#mpg - Miles per Gallon
+#cyl - number of cylinders
+#disp - engine displacement; combined volume of cylinders
+#hp - horsepower
+#drat - rear axle ratio
+#wt - weight
+#qsec - quarter mile time
+#vs - is engine "V" shaped (1) of straight (0)
+#am - automatic transmission (0) or manual transmission (1) (this dataset is from 1974, so manual transmission could very well have a positive impact on feul economy)
+#gear - number of forward gears
+#carb - number of carburetors
+
 
 #In this model, we attempt to model gas mileage.  As before, we begin by showing a graphic for the correlation matrix of the predictors.
 mtcars_test <- mtcars[-1]
 Matrix <- cor(mtcars_test)
 corrplot(Matrix)
-#View(Matrix)
+#View(Matrix) - lets you see the actual numbers of the correlation matrix
+
+#Here we see results that match our Principal Component Analysis, substituting the code:
+
+#mtcars_test <- mtcars[-1]
+#Matrix <- cor(mtcars_test)
+#corrplot(Matrix)
+
+
+#lets you see the correlation matrix graphic with the mpg vector
+
+
+
 #We see a variety of positive and negative corrleations appearing here, but again, we ultimately use the stepVIF() function to determine collinearity.
 Cars <- mtcars
 #Before creating our initial model we convert categorical predictors to data type "factor"
