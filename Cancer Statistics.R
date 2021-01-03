@@ -166,3 +166,48 @@ New_Age_Group_Sex %>% ggplot(aes(x = AGE_GRP, y = odds_ratio_female_to_male))+
   geom_errorbar(aes(ymin = CI_Lower, ymax = CI_Upper), width = 0.2)
 
 #From this graph we can see that the odds ratios are highest in the younger age groups, with the most precise confidence intervals occuring between ages 55-85.
+#####Comparing odds ratios over time#####
+Male_Thyroid_1999 <- Cancer_Stats %>% filter(EVENT_TYPE == "Incidence", RACE == "All Races", SITE == "Thyroid", SEX == "Male", YEAR == 1999)
+Female_Thyroid_1999 <- Cancer_Stats %>% filter(EVENT_TYPE == "Incidence", RACE == "All Races", SITE == "Thyroid", SEX == "Female", YEAR == 1999)
+Thyroid_1999 <- inner_join(Male_Thyroid_1999, Female_Thyroid_1999, by = "AGE_GRP", suffix = c("_Male", "_Female"))
+Thyroid_1999 <- Thyroid_1999[,c(9,1,3,5,10,12,14)]
+Thyroid_1999 <- Thyroid_1999 %>% mutate(OR = odds_ratio(positive_male = NewCount_Male, negative_male = POPULATION_Male-NewCount_Male, positive_female = NewCount_Female, negative_female = POPULATION_Female-NewCount_Female))
+OR_1999 <- Thyroid_1999$OR
+
+Male_Thyroid_2011 <- Cancer_Stats %>% filter(EVENT_TYPE == "Incidence", RACE == "All Races", SITE == "Thyroid", SEX == "Male", YEAR == 2011)
+Female_Thyroid_2011 <- Cancer_Stats %>% filter(EVENT_TYPE == "Incidence", RACE == "All Races", SITE == "Thyroid", SEX == "Female", YEAR == 2011)
+Thyroid_2011 <- inner_join(Male_Thyroid_2011, Female_Thyroid_1999, by = "AGE_GRP", suffix = c("_Male", "_Female"))
+Thyroid_2011 <- Thyroid_2011[,c(9,1,3,5,10,12,14)]
+Thyroid_2011 <- Thyroid_2011 %>% mutate(OR = odds_ratio(positive_male = NewCount_Male, negative_male = POPULATION_Male-NewCount_Male, positive_female = NewCount_Female, negative_female = POPULATION_Female-NewCount_Female))
+OR_2011 <- Thyroid_2011$OR
+
+#Finally, we can see how the odds ratios have changed for each age group from the beginning of the data set in 1999 to the end in 2011
+
+vec_1999 <- c(1:15)
+vec_2011 <- c(1:15)
+
+vec_1999[1:15] <- "1999"
+vec_2011[1:15] <- "2011"
+
+vec_age_group <- Thyroid_2011$AGE_GRP
+
+df_2009 <- as.data.frame(bind_cols(vec_1999, OR_1999, vec_age_group))
+df_2011 <- as.data.frame(bind_cols(vec_2011, OR_2011,vec_age_group))
+
+df <-as.data.frame(bind_rows(df_2009, df_2011))
+df$Year <- as.factor(df$Year)
+
+colnames(df)[1] <- "Year"
+colnames(df)[2] <- "OR"
+colnames(df)[3] <- "Age_Group"
+
+df %>% ggplot(aes(x = Age_Group))+
+  geom_line(aes(y = OR, color = Year, group = Year))+
+  geom_point(aes(y = OR, color = Year))+
+  xlab("Age Group")+
+  ylab("Odds Ratio")+
+  ggtitle("Odds Ratio of Thyroid Cancer (Female to Male) by Year")+
+  theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust=1))
+#Notice that in 1999, the odds ratios are all above 1, indicating the odds of thyroid cancer are higher for women in all age groups, although the odds ratio
+#does appear to approace 1 in the older age groups.  However, in 2011, the odds ratio actually does fall below 1 in all age groups over age 65, indicating
+#the odds of thyroid cancer are higher for males in these age groups in 2011
