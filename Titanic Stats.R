@@ -12,6 +12,27 @@ titanic <- titanic_train %>%
   mutate(Survived = factor(Survived),
          Pclass = factor(Pclass),
          Sex = factor(Sex))
+titanic <- titanic %>% mutate(Survived_YN = "Placeholder")
+for(i in 1:length(titanic$Survived))
+{
+  if(titanic$Survived[i] == 0)
+  {
+    titanic$Survived_YN[i] <- "Did Not Survive"
+  }
+  if(titanic$Survived[i] == 1)
+  {
+    titanic$Survived_YN[i] <- "Survived"
+  }
+}
+#Survived - 0=Did not survive, 1 = survived
+#Pclass - Passenger class; 1st class being the most expensive, 2nd class, is cheaper, 3rd class is cheapest
+#Sex - Sex of passenger, female or male
+#Age - Age of passenger; notice occasional missing data here
+#SibSp - Number of siblings/spouses on board
+#Parch - Number of Parents/Children on board
+#Fare - Passage fare in 1912 British Pounds
+#Survived_YN - a different expression of survival status
+
 
 #The first thing that's worth looking at is the breakdown by sex of the population of the ship in general. 
 titanic %>%
@@ -45,18 +66,7 @@ titanic %>%
 #We also see that probability of survival is related to passenger class, with 1st class being most likely to survive, and 3rd class least likely to survive.
 #We can illustrate this a little more lcearly with a pair of position fill bar plots.
 
-titanic <- titanic %>% mutate(Survived_YN = "Placeholder")
-for(i in 1:length(titanic$Survived))
-{
-  if(titanic$Survived[i] == 0)
-  {
-    titanic$Survived_YN[i] <- "Did Not Survive"
-  }
-  if(titanic$Survived[i] == 1)
-  {
-    titanic$Survived_YN[i] <- "Survived"
-  }
-}
+
 
 titanic %>%
   ggplot(aes(x = Pclass, fill = Survived)) +
@@ -74,7 +84,22 @@ titanic %>%
   ylab("Proportion of People in Survival Status")+
   ggtitle("Survival Proportion by Passenger Class")
 
-#With both of these visualizations we see that passenger class is clearly related to survival rate.
+#With both of these visualizations we see that passenger class is clearly related to survival rate. Since passenger class is closely related to fare, it also makes
+#sense to analyze survival status by fare.  Recall fare is represented in British Pounds as of 1912.
+
+titanic %>%
+  filter(Fare > 0) %>%
+  ggplot(aes(Survived_YN, Fare)) +
+  geom_boxplot(alpha = 0.2) +
+  scale_y_continuous(trans = "log2") +
+  geom_point() + 
+  geom_jitter()+
+  xlab("Survival Status")+
+  ylab("Fare (British Pounds in 1912)")+
+  ggtitle("Relationship Between Survival Status and Fare")
+#Notice that of those who did not survive, there is clearly a cluster at the lower fare range.  Those who did survive are distributed more evenly across the
+#entire range of fares.
+
 #We can pull together data on sex, survival rate, and passenger class by generating multiple plots simultaneously.
 
 titanic %>% filter(!(is.na(Age))) %>%
@@ -88,3 +113,4 @@ titanic %>% filter(!(is.na(Age))) %>%
 #males on the right.  These visualizations show that first and second class females are significantly more likely to survive than die.  Third class females are
 #about equally likely to survive ro die, with the older age group being more likely to die.  A similar pattern is seen in first class males.  Second and third
 #class males are much more likely to die than survive, with the exception of very young second class males.
+
