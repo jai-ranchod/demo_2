@@ -1,6 +1,9 @@
 library(titanic)
 library(splines)
 library(broom)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
 #First we process the titatnic_train dataset to make it a little more logistic regression friendly
 titanic <- titanic_train %>%
   select(Survived, Pclass, Sex, Age, SibSp, Parch, Fare) %>%
@@ -21,7 +24,17 @@ for(i in 1:nrow(titanic))
          {
                titanic$sex_binary[i] <- 0
           }
-   }
+}
+
+#Survived - 0=Did not survive, 1 = survived
+#Pclass - Passenger class; 1st class being the most expensive, 2nd class, is cheaper, 3rd class is cheapest
+#Sex - Sex of passenger, female or male
+#Age - Age of passenger; notice occasional missing data here
+#SibSp - Number of siblings/spouses on board
+#Parch - Number of Parents/Children on board
+#Fare - Passage fare in 1912 British Pounds
+#sex_binary - a different expression of Sex
+
 #First we need to perform some basic data preparation by removing NA's and re-coding factors to make it easier for us to keep track of.
 titanic <- na.omit(titanic)
 
@@ -158,18 +171,54 @@ model_02 <- glm(Survived ~ SibSp + ns(Age, df = 3) + Pclass + Parch + Fare,
 model_02 <- step(model_02, trace = FALSE)
 
 summary(model_02)
-#In the model summary, we see that having more siblings aboard decreases the survival probability.  We notice that age also lowers probability of 
-#surviving.  This matches intuition and the graphics used in our previous analysis ("Additional Data Visaulizations", same repo). We also note that 
-#Passenger class decreases probability of surviving.  This makes sense because a higher class means lower levels of accomodation that we saw in the 
-#"Additional Data Visualizations" section is related to survival in this way.  Finally, we notice that fare is positively related to survival, which
-#also matches our intuition and the "Additional Data Visualizations" graphic.
 
-#Here we can see where the knots related to age are actually positioned.  Notice that the first boundary to the first knot has the coefficient closest to 
-#zero among the age coefficients.  Also notice that there is a significant drop to the function between the middle two knots, and that the function between
-#the third knot and the boundary is in the middle.  The transitions between these values align with our knowledge that the youngest age group was most liekly to 
-#survive, the oldest age group second most likely, and the middle age group least likely.
-attr(model_02$model$`ns(Age, df = 3)`, "knots")
+#factor of odds ratio change based on 1 unit increase in number of siblings aboard, value below 1 means odds decrease
+exp(coefficients(model_02)[2])
 
+#factor of odds ratio change based on 1 unit increase in fare price.  Higher fare increases your odds of survival, but not by much
+exp(coefficients(model_02)[8])
+
+#factor of odds ratio change based on being in 3rd class as opposed to 1st class (first class is the reference class;it is the 1st level of the Pclass factor, 2nd class is second, 3rd class is third)
+exp(coefficients(model_02)[7])
+
+#factor of odds ratio change based on being in 2nd class as opposed to 1st class
+#Notice that being in 3rd class dramatically lowers your odds of survival compared to first class; second class lowers odds of survival in a less dramatic way
+exp(coefficients(model_02)[6])
+
+
+#Now we can address the Age feature here we show the knot locations of the spline
+attr(model_02$model$`ns(Age, df = 3)`, "knots")[[2]]
+
+
+#Here we show the probability of survival (NOT odds) as it relates to age.
+#Notice that there is an age range between roughly the early 200s and early 30s for which an increase in age actually increases survival probability (again,
+#this graph show probability and basis function values) although the trend is negative everywhere else.  Also notice that the only age range more likely to 
+#survive than not survive is the younges age range around 10 years old and under.  Recall the same observation being made in the "Additional Data Visualization" file.
+a <- ns(titanic$Age, 3)
+b <- glm(Survived ~ ns(Age,3), data = titanic, family = binomial())
+t <- predict(b, type = "response")
+d <- as.data.frame(cbind(a,t))
+colnames(d)[1] <- "One"
+colnames(d)[2] <- "Two"
+colnames(d)[3] <- "Three"
+colnames(d)[4] <- "Predicted"
+d <- d %>% mutate(Age = titanic$Age)
+d %>% ggplot(aes(x = Age))+
+  geom_point(aes(y = Predicted))+
+  geom_vline(xintercept = attr(model_02$model$`ns(Age, df = 3)`, "knots")[[1]])+
+  geom_vline(xintercept = attr(model_02$model$`ns(Age, df = 3)`, "knots")[[2]])+
+  xlab("Age")+
+  ylab("Predicted Probability of Survival")+
+  ggtitle("Predicted Probability of Survival (knots at Age=23,34)")
+
+#We can also show the basis functions from the matrix created by ns()
+d %>% ggplot(aes(x = Age))+
+  geom_line(aes(y = One), group = 1, color = "green")+
+  geom_line(aes(y = Two), group = 1, color = "blue")+
+  geom_line(aes(y = Three), group = 1, color = "red")+
+  xlab("Age")+
+  ylab("Spline Values")+
+  ggtitle("Basis Functions")
 #########Cross-Validation###################
 #now that we have a model, let's use 3-fold cross validation to test it out
 

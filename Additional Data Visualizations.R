@@ -12,6 +12,8 @@ titanic <- titanic_train %>%
   mutate(Survived = factor(Survived),
          Pclass = factor(Pclass),
          Sex = factor(Sex))
+
+
 titanic <- titanic %>% mutate(Survived_YN = "Placeholder")
 for(i in 1:length(titanic$Survived))
 {
@@ -51,7 +53,8 @@ titanic %>% filter(!is.na(Age)) %>%
   geom_density(alpha = 0.2)+
   xlab("Age")+
   ylab("Count of People")+
-  ggtitle("Survival Status by Age (Age = NA excluded)")
+  ggtitle("Survival Status by Age (Age = NA excluded)")+
+  scale_fill_discrete(name = "Survival Status", labels = c("Did Not Survive", "Survived"))
 #Here we see that the only age group more likely to survive than die iw the younger age group betwen 0-9 or so.  The older age groups are more likely to die
 #than survive, but not by much.  Unsruprisingly, the age group most likely to die than survive is the middle age group of about 15-35 years old.
 
