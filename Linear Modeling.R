@@ -55,7 +55,7 @@ Caesarean_YN <- Capacity$Caesarean_YN
 Model <- lm(Lung_Cap ~ Age + Height + Smoker + Male_YN + Caesarean_YN)
 stepVIF(Model)
 
-#All of our predictors meet our threshold and can stay in the model for now.  Next we see what the model look like.
+#All of our predictors meet our threshold and can stay in the model for now.  Next we see what the model looks like.
 
 summary(Model)
 
@@ -140,12 +140,12 @@ summary(Cars_Model)
 #Here we see that there are predictors not meeting our p <= 0.05 significance threshold.  We therefore use a "backward selection" process to eliminate them.
 #We remove the least significant predictor, re-run the model and repeat until all predictors are significant.  Below is the resulting model.
 
-Cars_Model <- lm(Mileage ~  Weight + Acceleration  + Transmission)
-summary(Cars_Model)
+Cars_Model_2 <- step(Cars_Model)
+summary(Cars_Model_2)
 
 #Again, we examime the diagnostic plots to check the assumptions of linearity.
 par(mfrow = c(2,2))
-plot(Cars_Model)
+plot(Cars_Model_2)
 par(mfrow = c(1,1))
 
 #We again embrace the assumption of independent observations, as the fuel efficiency of one car would not affect that of another.
