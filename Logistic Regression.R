@@ -13,20 +13,9 @@ titanic <- titanic_train %>%
          Pclass = factor(Pclass),
          Sex = factor(Sex))
 
-
-
 #making the sex column binary with male = 1
-for(i in 1:nrow(titanic))
-  {
-       if(titanic$Sex[i] == "male")
-         {
-               titanic$sex_binary[i] <- 1
-            }
-      if(titanic$Sex[i] == "female")
-         {
-               titanic$sex_binary[i] <- 0
-          }
-}
+titanic$Sex <- as.integer(titanic$Sex == "male")
+
 
 #Survived - 0=Did not survive, 1 = survived
 #Pclass - Passenger class; 1st class being the most expensive, 2nd class, is cheaper, 3rd class is cheapest
