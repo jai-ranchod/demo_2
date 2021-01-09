@@ -416,3 +416,13 @@ dfAge %>% ggplot(aes(x = Age))+
 #age range between approximately 20-45 where an increase in age actually increases the log odds of survival.  We also note that both the regression curve
 #and the predictions from the age-only model are only positive for ages below 10 years old, indicating that the under 10 age group is the only age group
 #more likely to survive than not survive.  Recall that this aligns with analysis done in the "Additional Data Visualizations" file.
+
+dfAge %>% ggplot(aes(x = Age))+
+  geom_line(aes(y = S1), color = "purple")+
+  geom_line(aes(y = s2), color = "blue")+
+  geom_line(aes(y = s3), color = "red")+
+  ylab("Spline Values")+
+  xlab("Age")+
+  ggtitle("Age Spline Basis Functions")
+#Finally, we show the basis functions for our age spline.
+
