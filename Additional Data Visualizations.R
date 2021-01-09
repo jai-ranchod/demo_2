@@ -55,7 +55,7 @@ titanic %>% filter(!is.na(Age)) %>%
   ylab("Count of People")+
   ggtitle("Survival Status by Age (Age = NA excluded)")+
   scale_fill_discrete(name = "Survival Status", labels = c("Did Not Survive", "Survived"))
-#Here we see that the only age group more likely to survive than die iw the younger age group betwen 0-9 or so.  The older age groups are more likely to die
+#Here we see that the only age group more likely to survive than die is the younger age group betwen 0-9 or so.  The older age groups are more likely to die
 #than survive, but not by much.  Unsruprisingly, the age group most likely to die than survive is the middle age group of about 15-35 years old.
 
 titanic %>%

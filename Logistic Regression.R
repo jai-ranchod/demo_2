@@ -1,3 +1,5 @@
+#####Intitial Processing and Definitions#####
+
 library(titanic)
 library(splines)
 library(broom)
@@ -38,7 +40,7 @@ for(i in 1:nrow(titanic))
 #First we need to perform some basic data preparation by removing NA's and re-coding factors to make it easier for us to keep track of.
 titanic <- na.omit(titanic)
 
-
+#####Linearity-Logit Assumption Check#####
 #Breaking down data into train and test split
 titanic <- titanic[,c(1,2,4,5,6,7,8)]
 set.seed(2)
@@ -49,14 +51,9 @@ train <- titanic[-vec,]
 model <- glm(Survived ~., data = train, 
              family = binomial)
 
-#Eliminating collinearity with backward selection; we know something is wrong because Fare is not in the model, even though exploratory data analysis
-#clearly shows a relationship between fare and survival
-model <- step(model)
-
 #We need to generate a vector of probabilities associated with each row in order to perform daignostics ensuring we are meeting the assumptions of
 #logistic regression
 probabilities <- predict(model, type = "response")
-
 
 #First we check the assumption of linearity between continuous predictors and the outcome logit.  To do this we must select our numeric type predictors.
 my_data <- train %>% select(Age, Fare)
@@ -73,7 +70,10 @@ ggplot(mydata, aes(logit, predictor.value))+
   geom_smooth(method = "loess") + 
   theme_bw() + 
   facet_wrap(~predictors, scales = "free_y")
-
+#Conclusion: we may need to apply a spline to the "age" predictor.  The "fare" predictor does not appear to need a spline.  Therefore, we will proceed
+#with a model that DOES include a spline on the "age" predictor and one that does NOT include a spline on the "age" predictor.  We will then compare their
+#respective performances against cross-validation and see if the inclusion in a spline is justified.
+#####Assumption of No Influential Outliers#####
 #Before we deal with the non-linearity of the age model, we have to investigate the possibility of influential outlier values.
 #First, let's look at Cook's distance for our most visaully noticeable possible outliers
 plot(model, which = 4,id.n = 8)
@@ -94,11 +94,11 @@ ggplot(model.data, aes(index, .std.resid)) +
 
 #We notice that we have no standardized residuals over absolute value of 3, so we can be confident that we do not have influential outliers
 ##########Introduction of Splines############
-#With the fare predictor, we could argue that it approximates a linear relationship with the logit closely enough, but it is harder to make the case for
-#the age predictor.  We'll try to use natural cubic splines to account for this non-linearity.
 
-#Optimizing the number of degrees of freedom via resampling; we suspect there would be up to
-# 3 regions (df = 2) for age based on graphics from exploratory phase
+
+#Optimizing the number of degrees of freedom via cross-validation; we suspect there would be up to
+# 3 regions (df = 2) for age based on graphics from exploratory phase; we want to allow for the possibility that each area of the domain might need it's own piece
+#of the piece-wise polynomial
 #We'll add one in the interest of exploring additional possibilities
 
 #Histrogram to provide some additional intuition about how many degrees of freedom may be appropriate
@@ -109,119 +109,133 @@ titanic %>% ggplot(aes(x = Age))+
   ggtitle("Estimating Initial Degrees of Freedom: Age")
 
 
-#Randomly Resampling to find out what the ideal number of degrees of freedom for the Age spline is.  We randomly select 1/3 of the data to test and 2/3 to train
-#For each iteration, each number of degrees of freedom (1-6) will be used to create a model and accuracy will be calculated.  We define accuracy as simply a 
+#Here we use cross validation to find out what the ideal number of degrees of freedom for the Age spline is.  We randomly select 1/3 of the data to test and 2/3 to train
+#For each iteration, each number of degrees of freedom (1-4) will be used to create a model and accuracy will be calculated.  We define accuracy as simply a 
 #result that matches a prediction.  Inaccuracies are results that do not match a prediction; we do not distinguish between false positives and false negatives
-#for these purposes.  The degree of freedom that is most accurate against the test set is stored and the loop starts over.  We repeat this 1,000 times, then analyze
-#which degree of freedom was most frequently the most accurate.
+#for these purposes.  The degree of freedom that is most frequently the most accurate will then be adopted by the model.
+#setting seed and shuffling data
 set.seed(1)
-dist <- data.frame()
-for(k in 1:1000)
+rows <- sample(nrow(titanic))
+shuffled <- titanic[rows,]
+
+#Then we split our data set for 3-fold cross validation
+t <- nrow(shuffled)/3
+df1 <- shuffled[1:t,]
+df2 <- shuffled[(t+1):(2*t),]
+df3 <- shuffled[((2*t)+1):(3*t),]
+
+#Beginning first fold
+train1 <- bind_rows(df1,df2)
+test1 <- df3
+test1 <- test1 %>% mutate(survived_numeric = as.numeric(Survived)-1)
+
+
+accuracy_data_1 <- data.frame()
+
+for(i in 1:4)
 {
-  vec <- sample(c(1:nrow(titanic)), (nrow(titanic)/3),replace = FALSE)
-  test <- titanic[vec,]
-  train <- titanic[-vec,]
   
-  test <- test %>% mutate(survived_numeric = as.numeric(Survived)-1)
+
+model_1 <- glm(Survived ~ +SibSp + ns(Age, df = i) + Pclass + Parch + Fare,
+             data = train1,
+             family = binomial)
+model_1 <- step(model_1, trace = FALSE)
+
+df_1 <- test1 %>% mutate(predicted_percent_survival = predict(newdata = test1, model_1, type = "response"))
+df_1$predicted_percent_survival <- round(df_1$predicted_percent_survival)
+df_1 <- df_1 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
+accuracy_data_1[i,1] <- 1-(sum(df_1$diff)/nrow(df_1))
+accuracy_data_1[i,2] <- i
+df_1 <- NA
+}
+colnames(accuracy_data_1)[1] <- "Accuracy1"
+
+#Beginning second fold
+train2 <- bind_rows(df1,df3)
+test2 <- df2
+test2 <- test2 %>% mutate(survived_numeric = as.numeric(Survived)-1)
+
+
+accuracy_data_2 <- data.frame()
+
+for(i in 1:4)
+{
   
-  accuracy_data <- data.frame()
   
-  for(i in 1:4)
-  {
-      
-      model <- glm(Survived ~ SibSp + ns(Age, df = i) + Pclass + Parch + Fare,
-                   data = titanic,
-                   family = binomial)
-      model <- step(model, trace = FALSE)
-      
-      probabilities <- predict(newdata = test, model, type = "response")
-      df <- test %>% mutate(predicted_percent_survival = predict(newdata = test, model, type = "response"))
-      df$predicted_percent_survival <- round(df$predicted_percent_survival)
-      df <- df %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
-      accuracy_data[i,1] <- 1-(sum(df$diff)/nrow(df))
-      accuracy_data[i,2] <- i
-      df <- NA
-    
-  }
+  model_2 <- glm(Survived ~ +SibSp + ns(Age, df = i) + Pclass + Parch + Fare,
+                 data = train2,
+                 family = binomial)
+  model_2 <- step(model_2, trace = FALSE)
   
-  colnames(accuracy_data)[1] = "Accuracy"
-  colnames(accuracy_data)[2] = "i"
+  df_2 <- test2 %>% mutate(predicted_percent_survival = predict(newdata = test2, model_2, type = "response"))
+  df_2$predicted_percent_survival <- round(df_2$predicted_percent_survival)
+  df_2 <- df_2 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
+  accuracy_data_2[i,1] <- 1-(sum(df_2$diff)/nrow(df_2))
+  accuracy_data_2[i,2] <- i
+  df_2 <- NA
+}
+colnames(accuracy_data_2)[1] <- "Accuracy2"
+
+#Beginning third fold
+train3 <- bind_rows(df2,df3)
+test3 <- df1
+test3 <- test3 %>% mutate(survived_numeric = as.numeric(Survived)-1)
+
+
+accuracy_data_3 <- data.frame()
+
+for(i in 1:4)
+{
   
-  accuracy_data <- na.omit(accuracy_data)
   
-  minimum<-accuracy_data %>% filter(Accuracy==max(Accuracy))
-  dist[k,1] <- (minimum[[1,2]])
-  dist[k,2] <- minimum[[1,1]]
+  model_3 <- glm(Survived ~ +SibSp + ns(Age, df = i) + Pclass + Parch + Fare,
+                 data = train3,
+                 family = binomial)
+  model_3 <- step(model_3, trace = FALSE)
+  
+  df_3 <- test3 %>% mutate(predicted_percent_survival = predict(newdata = test3, model_3, type = "response"))
+  df_3$predicted_percent_survival <- round(df_3$predicted_percent_survival)
+  df_3 <- df_3 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
+  accuracy_data_3[i,1] <- 1-(sum(df_3$diff)/nrow(df_3))
+  accuracy_data_3[i,2] <- i
+  df_3 <- NA
 }
 
-colnames(dist)[1] <- "i"
-colnames(dist)[2] <- "accuracy"
-View(dist)
+colnames(accuracy_data_3)[1] <- "Accuracy3"
+max1<-accuracy_data_1 %>% filter(Accuracy1==max(Accuracy1))
+max2<-accuracy_data_2 %>% filter(Accuracy2==max(Accuracy2))
+max3<-accuracy_data_3 %>% filter(Accuracy3==max(Accuracy3))
 
-#After resampling and testing different combinations of degrees of freedom 1,000 times, the use of 3 degrees of freedom clearly produces the most accurate 
-#test results the most frequently.  In the table "data", we see each degree of freedom and we see how many out of
-#the 1,000 models had the most accurate results against the randomly selected test set with degree of freedom.
-data <- dist %>% mutate(count = 1) %>% group_by(i) %>% summarise(accuracy = mean(accuracy), count = sum(count))
+max1
+max2
+max3
 
-#Now that we know how many degrees of freedom we want to use, we can continue building our model.  We now address collinearity possibilities with
+#Notice that 3 degrees of freedom consistently provides the most accurate results; this is what we will use going forward
+
+
+#####Addressing Colinearity with backward selection#####
+#Now that we know how many degrees of freedom we want to use in the spline model, we can continue building our models, one with a spline on
+#the "age" predictor, and one without.  We now address collinearity possibilities with
 #a backward selection process similar to what we used in linear modeling.
-model_02 <- glm(Survived ~ SibSp + ns(Age, df = 3) + Pclass + Parch + Fare,
+model_spline <- glm(Survived ~ SibSp + ns(Age, df = 3) + Pclass + Parch + Fare + sex_binary,
              data = titanic,
              family = binomial)
-model_02 <- step(model_02, trace = FALSE)
+model_spline <- step(model_spline, trace = FALSE)
+summary(model_spline)
+#Spline model features include; Siblings; Age; Class; Sex
 
-summary(model_02)
+model_no_spline <- glm(Survived ~ SibSp + Age + Pclass + Parch + Fare + sex_binary,
+                       data = titanic,
+                       family = binomial)
+model_no_spline <- step(model_no_spline, trace = FALSE)
+summary(model_no_spline)
 
-#factor of odds ratio change based on 1 unit increase in number of siblings aboard, value below 1 means odds decrease
-exp(coefficients(model_02)[2])
+#No-spline model features includel; siblings; Age; Class; Sex
+#########Cross-Validation/Comparing Models###################
+AIC(model_no_spline)
+AIC(model_spline)
 
-#factor of odds ratio change based on 1 unit increase in fare price.  Higher fare increases your odds of survival, but not by much
-exp(coefficients(model_02)[8])
-
-#factor of odds ratio change based on being in 3rd class as opposed to 1st class (first class is the reference class;it is the 1st level of the Pclass factor, 2nd class is second, 3rd class is third)
-exp(coefficients(model_02)[7])
-
-#factor of odds ratio change based on being in 2nd class as opposed to 1st class
-#Notice that being in 3rd class dramatically lowers your odds of survival compared to first class; second class lowers odds of survival in a less dramatic way
-exp(coefficients(model_02)[6])
-
-
-#Now we can address the Age feature here we show the knot locations of the spline
-attr(model_02$model$`ns(Age, df = 3)`, "knots")[[2]]
-
-
-#Here we show the probability of survival (NOT odds) as it relates to age.
-#Notice that there is an age range between roughly the early 200s and early 30s for which an increase in age actually increases survival probability (again,
-#this graph show probability and basis function values) although the trend is negative everywhere else.  Also notice that the only age range more likely to 
-#survive than not survive is the younges age range around 10 years old and under.  Recall the same observation being made in the "Additional Data Visualization" file.
-a <- ns(titanic$Age, 3)
-b <- glm(Survived ~ ns(Age,3), data = titanic, family = binomial())
-t <- predict(b, type = "response")
-d <- as.data.frame(cbind(a,t))
-colnames(d)[1] <- "One"
-colnames(d)[2] <- "Two"
-colnames(d)[3] <- "Three"
-colnames(d)[4] <- "Predicted"
-d <- d %>% mutate(Age = titanic$Age)
-d %>% ggplot(aes(x = Age))+
-  geom_point(aes(y = Predicted))+
-  geom_vline(xintercept = attr(model_02$model$`ns(Age, df = 3)`, "knots")[[1]])+
-  geom_vline(xintercept = attr(model_02$model$`ns(Age, df = 3)`, "knots")[[2]])+
-  xlab("Age")+
-  ylab("Predicted Probability of Survival")+
-  ggtitle("Predicted Probability of Survival (knots at Age=23,34)")
-
-#We can also show the basis functions from the matrix created by ns()
-d %>% ggplot(aes(x = Age))+
-  geom_line(aes(y = One), group = 1, color = "green")+
-  geom_line(aes(y = Two), group = 1, color = "blue")+
-  geom_line(aes(y = Three), group = 1, color = "red")+
-  xlab("Age")+
-  ylab("Spline Values")+
-  ggtitle("Basis Functions")
-#########Cross-Validation###################
-#now that we have a model, let's use 3-fold cross validation to test it out
-
+#cross validation to get additional information about how our models perform
 #first we shuffle our rows randomly
 set.seed(3)
 rows <- sample(nrow(titanic))
@@ -237,52 +251,168 @@ df3 <- shuffled[((2*t)+1):(3*t),]
 train1 <- bind_rows(df1,df2)
 test1 <- df3
 
-model1 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + Fare,
+model_spline_1 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + sex_binary,
               data = train1, 
              family = binomial)
-test1 <- test1 %>% mutate(predicted_percent_survival = predict(model1, newdata = test1, type = "response"))
+test1 <- test1 %>% mutate(predicted_percent_survival_no_spline = predict(model_spline_1, newdata = test1, type = "response"))
 
-test1$predicted_percent_survival <- round(test1$predicted_percent_survival)
+model_no_spline_1 <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
+                      data = train1, 
+                      family = binomial)
+test1 <- test1 %>% mutate(predicted_percent_survival_spline = predict(model_no_spline_1, newdata = test1, type = "response"))
+
+test1$predicted_percent_survival_no_spline <- round(test1$predicted_percent_survival_no_spline)
+test1$predicted_percent_survival_spline <- round(test1$predicted_percent_survival_spline)
+
 test1 <- test1 %>% mutate(survived_numeric = as.numeric(Survived)-1)
-test1 <- test1 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
-accuracy1 <- 1-(sum(test1$diff)/nrow(test1))
-binom.test((nrow(test1)*accuracy1), nrow(test1), alternative = "two.sided")
+
+test1 <- test1 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percent_survival_no_spline))
+test1 <- test1 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
+
+
+
+accuracy1_no_spline <- 1-(sum(test1$diff_no_spline)/nrow(test1))
+accuracy1_spline <- 1-(sum(test1$diff_spline)/nrow(test1))
+
 
 #Beginning second fold
 train2 <- bind_rows(df1,df3)
 test2 <- df2
 
-model2 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + Fare,
-              data = train2, 
-              family = binomial)
-test2 <- test2 %>% mutate(predicted_percent_survival = predict(model2, newdata = test2, type = "response"))
+model_spline_2 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + sex_binary,
+                      data = train2, 
+                      family = binomial)
+test2 <- test2 %>% mutate(predicted_percent_survival_no_spline = predict(model_spline_2, newdata = test2, type = "response"))
 
-test2$predicted_percent_survival <- round(test2$predicted_percent_survival)
+model_no_spline_2 <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
+                         data = train2, 
+                         family = binomial)
+test2 <- test2 %>% mutate(predicted_percent_survival_spline = predict(model_no_spline_2, newdata = test2, type = "response"))
+
+test2$predicted_percent_survival_no_spline <- round(test2$predicted_percent_survival_no_spline)
+test2$predicted_percent_survival_spline <- round(test2$predicted_percent_survival_spline)
+
 test2 <- test2 %>% mutate(survived_numeric = as.numeric(Survived)-1)
-test2 <- test2 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
-accuracy2 <- 1-(sum(test2$diff)/nrow(test2))
 
+test2 <- test2 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percent_survival_no_spline))
+test2 <- test2 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
+
+
+
+accuracy2_no_spline <- 1-(sum(test2$diff_no_spline)/nrow(test2))
+accuracy2_spline <- 1-(sum(test2$diff_spline)/nrow(test2))
 #beginning third fold
 train3 <- bind_rows(df2,df3)
 test3 <- df1
 
-model3 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + Fare,
-              data = train3, 
-              family = binomial)
-test3 <- test3 %>% mutate(predicted_percent_survival = predict(model3, newdata = test3, type = "response"))
+model_spline_3 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + sex_binary,
+                      data = train3, 
+                      family = binomial)
+test3 <- test3 %>% mutate(predicted_percent_survival_no_spline = predict(model_spline_3, newdata = test3, type = "response"))
 
-test3$predicted_percent_survival <- round(test3$predicted_percent_survival)
+model_no_spline_3 <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
+                         data = train3, 
+                         family = binomial)
+test3 <- test3 %>% mutate(predicted_percent_survival_spline = predict(model_no_spline_3, newdata = test3, type = "response"))
+
+test3$predicted_percent_survival_no_spline <- round(test3$predicted_percent_survival_no_spline)
+test3$predicted_percent_survival_spline <- round(test3$predicted_percent_survival_spline)
+
 test3 <- test3 %>% mutate(survived_numeric = as.numeric(Survived)-1)
-test3 <- test3 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
-accuracy3 <- 1-(sum(test3$diff)/nrow(test3))
 
-binom.test((nrow(test3)*accuracy3), nrow(test3), alternative = "two.sided")
+test3 <- test3 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percent_survival_no_spline))
+test3 <- test3 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
+
+
+
+accuracy3_no_spline <- 1-(sum(test3$diff_no_spline)/nrow(test3))
+accuracy3_spline <- 1-(sum(test3$diff_spline)/nrow(test3))
+
 
 #Note that all accuracy values have a 2-sided p-value well below 0.01 indicating the model allows us to reject the null hypothesis that we do not gain any predictive
 #power with the model
 
 #Evaluation
-#in general, we can feel confident that our model predicts who would survive or not survive the Titanic wreck with ~70.4% accuracy
-mean_accuracy <- (accuracy1 + accuracy2 + accuracy3)/3
-mean_accuracy
-###Don't forget to eliminate significant outliers as an assumption; explicitly list assumptions at beginning
+#in general, we can feel confident that our model predicts who would survive or not survive the Titanic wreck with ~80% accuracy
+mean_accuracy_no_spline <- (accuracy1_no_spline + accuracy2_no_spline + accuracy3_no_spline)/3
+mean_accuracy_no_spline
+
+mean_accuracy_spline <- (accuracy1_spline + accuracy2_spline + accuracy3_spline)/3
+mean_accuracy_spline
+
+##Using AIC as a means of comparing models
+
+#Notice both models are used to predict the same outcome on the same data set
+#Since we have a sufficiently large sample size and can show that the ratio of data points to predictors is greater than 40 we can use AIC as a 
+#means of comparing models
+
+nrow(titanic)/4 > 40
+model_no_spline <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
+                       data = titanic, 
+                       family = binomial)
+model_spline <- glm(Survived ~SibSp + ns(Age,3) + Pclass + sex_binary,
+                       data = titanic, 
+                       family = binomial)
+
+
+AIC(model_spline)
+exp((AIC(model_spline) - AIC(model_no_spline))/2)
+#The model without the spline is only 0.0141 times as likely as the model with the spline to be the model that minimizes out of sample error
+#the AIC criteria clearly favors the use of a spline
+
+
+#The models demonstrate very similar performance during cross validation; and since the AIC score favors the use of the spline on the "age" predictor, that
+#is the model we will use going forward
+#####Model Inteprretation#####
+
+model_spline <- glm(Survived ~SibSp + ns(Age,3) + Pclass + sex_binary,
+                         data = titanic, 
+                         family = binomial)
+summary(model_spline)
+
+#Recall "sex_binary is 1 for male, 0 for female
+#The log odds decrease as the number of siblings a passenger has increases
+#The log odds of survival are lower for second class passengers as opposed to first class(the reference class) and the log odds of survival are MUCH
+#lower for passengers in 3rd class than first class
+#The log odds of survival are much lower for males than for females
+
+#Notice that the results related to class and sex especially align with our analysis from the "Additional Data Visualizations" section
+#Also notice that the "fare" predictor was eliminated during the backward selection process for both models, this is likely because
+#that information is carried in the Pclass predictor.
+#Now we can graph predicted log odds versus age
+
+model_age <- glm(Survived ~ ns(Age,3),
+                 data = titanic,
+                 family = binomial)
+
+p1 <- predict(model_age, type = "response")
+
+p <- predict(model_spline, type = "response")
+t <- titanic$Age
+s <- ns(titanic$Age, 3)
+s1 <- s[,1]
+s2 <- s[,2]
+s3 <- s[,3]
+
+dfAge <- as.data.frame(cbind(t,p,p1,s1,s2,s3))
+
+colnames(dfAge)[1] <- "Age"
+colnames(dfAge)[2] <- "Predicted"
+colnames(dfAge)[3] <- "Predicted_Age"
+colnames(dfAge)[4] <- "S1"
+colnames(dfAge)[5] <- "S2"
+colnames(dfAge)[6] <- "S3"
+
+dfAge %>% ggplot(aes(x = Age))+
+  geom_point(aes(y = LO_Predicted))+
+  geom_smooth(aes(y = LO_Predicted))+
+  geom_point(aes(y = LO_Predicted_Age), color = "orange")+
+  xlab("Age")+
+  ylab("Predicted Log Odds of Survival")+
+  ggtitle("Predicted Log Odds of Survival")
+
+#In the above plot, the predicted log odds from the final model are in black (with regression in blue), the predicted log odds from a model using age with cubic
+#splines as the only feature are in orange.  In both the cases of the regression and the model with only the age spline, we see that there is an 
+#age range between approximately 20-45 where an increase in age actually increases the log odds of survival.  We also note that both the regression curve
+#and the predictions from the age-only model are only positive for ages below 10 years old, indicating that the under 10 age group is the only age group
+#more likely to survive than not survive.  Recall that this aligns with analysis done in the "Additional Data Visualizations" file.
