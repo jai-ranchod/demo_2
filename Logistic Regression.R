@@ -1,5 +1,5 @@
 #####Intitial Processing and Definitions#####
-
+#Here we use a logistic regression model as a means of binary classification to predict who will survive and who will not survive the titanic wreck
 library(titanic)
 library(splines)
 library(broom)
