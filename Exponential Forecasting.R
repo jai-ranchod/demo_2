@@ -1,11 +1,14 @@
 
-#To demonstrate forecasting we'll specifically use the PHLX semiconductor index (SOX). We'll be observing the close price of this index as a time series, and forecasting one month out. So that we can test our forecast, the training and testing will be done on prices from August 1, 2019 through July 31, 2020, and we will try to determine the price as of the end of August, 2020. Note that the dataset doe note contain weekends.
+#To demonstrate forecasting we'll specifically use the PHLX semiconductor stock index (SOX). We'll be observing the close price of this index as a time series, and forecasting one month out.
+#So that we can test our forecast, the training and testing will be done on prices from August 1, 2019 through July 31, 2020, and we will try to determine the price as of the end of August, 2020.
+#Note that the dataset does not contain weekends.
 
 library(readxl)
 PHLX <- read_excel("~/MBA Classes/Summer Term/Corporate Strategic Management/Final Stuff/Group Case Study/PHLX.xlsx")
 
 head(PHLX)
 
+#defining the number of days we want to look ahead (21 business days), and how many days we want to compose the testing set (85 business days ~ 1/3 of the data)
 h <- 21
 g <- 85
 
@@ -21,6 +24,7 @@ Initial_Model_Forecast<-forecast(Initial_Model)
 
 vector<-PHLX$Close[is.na(PHLX$Close) == FALSE]
 
+#this is the non-optimized model
 No_Opt <- holt(vector, h = h)
 forecast(No_Opt)
 

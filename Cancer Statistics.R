@@ -19,7 +19,9 @@ library("pdftools")
 library("dplyr")
 library("tidyverse")
 library("scales")
-#Here we are using a dataset from the Cleveland Clinic regarding cancer rates from 2009 to 2011.
+#Here we are using a dataset from the Cleveland Clinic regarding cancer rates from 2009 to 2011. Specifically we will analyize the odds
+#ratios of incidences of Thyroid cancer for men and women across multiple age groups.
+
 Cancer_Stats <- read_excel("~/MBA Classes/Spring Semester 2020/Business Analytics/Data Sets/Cancer_Stats.xlsx")
 head(Cancer_Stats)
 
@@ -100,7 +102,7 @@ p_value <- function(positive_male, negative_male, positive_female, negative_fema
   pv
 }
 
-#With these functions in place, now I'll add the odds ratio, p-value, and upper and lower 95% confidence intervals.
+#With these functions in place, now we add the odds ratio, p-value, and upper and lower 95% confidence intervals.
 #My personal preference is to perform mutations one at a time to keep things more organized.
 
 New_Age_Group_Sex <- New_Age_Group_Sex %>% mutate(odds_ratio_female_to_male = odds_ratio(positive_male = Count_Male, negative_male = Population_Male-Count_Male, positive_female = Count_Female, negative_female = Population_Female-Count_Female))
@@ -210,4 +212,4 @@ df %>% ggplot(aes(x = Age_Group))+
   theme(axis.text.x = element_text(angle = 270, vjust = 0.5, hjust=1))
 #Notice that in 1999, the odds ratios are all above 1, indicating the odds of thyroid cancer are higher for women in all age groups, although the odds ratio
 #does appear to approace 1 in the older age groups.  However, in 2011, the odds ratio actually does fall below 1 in all age groups over age 65, indicating
-#the odds of thyroid cancer are higher for males in these age groups in 2011
+#the odds of thyroid cancer are higher for males in these age groups in 2011.
