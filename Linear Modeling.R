@@ -25,6 +25,13 @@ library(readxl)
 Lung_Capacity <- read_excel("~/MBA Classes/Spring Semester 2020/Business Analytics/Data Sets/Lung_Capacity.xlsx")
 head(Lung_Capacity)
 
+#LunCap - Lung capacity
+#Age - Age of subbject
+#Height - Height of subject
+#Smoker_YN - 1 if subject is smoker,  otherwise
+#Male_YN - 1 if the subject is male, 0 otherwise
+#Caesarean_YN - 1 if the subject was a caesarean birth,  otherwise
+
 #Here we will be predicting lung capacity based on age, sex, smoking status, and whether or not the subject was a Caesarean birth or not.
 #First, we create a correlation matrix to show the relationships between the predictors.  Note that the sex predictor is 1 for "male" and 0 for "female".
 #Likewise, "1" indicate a smoker in the smoker column, and "1" represents an individual that did have a Caesarean birth

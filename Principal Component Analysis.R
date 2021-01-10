@@ -1,6 +1,18 @@
 library(factoextra)
 data(mtcars)
+#Here we use principal components analysis to gain a better understanding of the relationship between the columns of the "mtcars" dataset.
 
+#mpg - Miles per Gallon
+#cyl - number of cylinders
+#disp - engine displacement; combined volume of cylinders
+#hp - horsepower
+#drat - rear axle ratio
+#wt - weight
+#qsec - quarter mile time
+#vs - is engine "V" shaped (1) of straight (0)
+#am - automatic transmission (0) or manual transmission (1) (this dataset is from 1974, so manual transmission could very well have a positive impact on feul economy)
+#gear - number of forward gears
+#carb - number of carburetors
 #First, we remove the factors(categorical variables) from the data set.
 PCA_mtcars <- mtcars[,c(1,2,3,4,5,6,7,10,11)]
 

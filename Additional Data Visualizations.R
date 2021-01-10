@@ -4,7 +4,7 @@ library(titanic)
 
 
 
-#We can use the built in "titanic_train" data set to illustrated the use of various data visualizations.  These visualizations will show us information
+#We can use the built in "titanic_train" data set to illustrat the use of various data visualizations.  These visualizations will show us information
 #about passengers about the Titanic, as well as survival rates from the wreck broken down by various factors.
 
 titanic <- titanic_train %>%
