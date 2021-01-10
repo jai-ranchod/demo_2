@@ -37,7 +37,7 @@ head(Cancer_Stats)
 #For this data set, we will be analyzing incidences of thyroid cancer between males and females for all races. 
 #We consider each year to contain an independent population for each age group.  One could make the case that the population in the 70-74 age group, for example, may be influenced by the occurences in prior years when those patient were in other age groups.  We consider these effects to be small, and combined with the changing population, we are confident in our ability to define each year and age group as independent.
 #We start off with a simple density plot showing differences based on sex:
-
+#####Initial Analysis#####
 
 Thyroid <- Cancer_Stats %>% filter(EVENT_TYPE == "Incidence", RACE == "All Races", SITE == "Thyroid")
 
@@ -73,6 +73,7 @@ Thyroid %>% filter(SEX == "Male" | SEX == "Female") %>% group_by(AGE_GRP, SEX) %
   ylab("Rate of Thyroid Cancer (per 100,000)")+
   ggtitle("Rate of Thyroid Cancer by Age Group and Sex")
 
+#####Odds of Thyroid Cancer######
 #Next, we can calculate the odds of Thyroid cancer for females and males, and calculated the odds ratios for each age group.  R does have available odds ratio functions, but for these purposes, I prefer to demonstrate manual calculation.
 #First, we need to filter in the relevant data from our initial data set.
 
@@ -101,6 +102,8 @@ p_value <- function(positive_male, negative_male, positive_female, negative_fema
   pv <- 2*(1-pnorm(log_or, 0, se))
   pv
 }
+
+#####Odds Ratios#####
 
 #With these functions in place, now we add the odds ratio, p-value, and upper and lower 95% confidence intervals.
 #My personal preference is to perform mutations one at a time to keep things more organized.
@@ -182,6 +185,8 @@ Thyroid_2011 <- inner_join(Male_Thyroid_2011, Female_Thyroid_1999, by = "AGE_GRP
 Thyroid_2011 <- Thyroid_2011[,c(9,1,3,5,10,12,14)]
 Thyroid_2011 <- Thyroid_2011 %>% mutate(OR = odds_ratio(positive_male = NewCount_Male, negative_male = POPULATION_Male-NewCount_Male, positive_female = NewCount_Female, negative_female = POPULATION_Female-NewCount_Female))
 OR_2011 <- Thyroid_2011$OR
+
+
 
 #Finally, we can see how the odds ratios have changed for each age group from the beginning of the data set in 1999 to the end in 2011
 

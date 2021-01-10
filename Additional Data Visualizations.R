@@ -1,11 +1,12 @@
+
+
 options(digits = 3)    # report 3 significant digits
 library(tidyverse)
 library(titanic)
-
-
-
 #We can use the built in "titanic_train" data set to illustrat the use of various data visualizations.  These visualizations will show us information
 #about passengers about the Titanic, as well as survival rates from the wreck broken down by various factors.
+
+#####Initial Data Processing#####
 
 titanic <- titanic_train %>%
   select(Survived, Pclass, Sex, Age, SibSp, Parch, Fare) %>%
@@ -13,19 +14,10 @@ titanic <- titanic_train %>%
          Pclass = factor(Pclass),
          Sex = factor(Sex))
 
+#First we convert the "survived" indicator from data type of "factor" to data type of "numeric"
+titanic <- titanic %>% mutate(Survived_YN = as.numeric(Survived) - 1)
+View(titanic)
 
-titanic <- titanic %>% mutate(Survived_YN = "Placeholder")
-for(i in 1:length(titanic$Survived))
-{
-  if(titanic$Survived[i] == 0)
-  {
-    titanic$Survived_YN[i] <- "Did Not Survive"
-  }
-  if(titanic$Survived[i] == 1)
-  {
-    titanic$Survived_YN[i] <- "Survived"
-  }
-}
 #Survived - 0=Did not survive, 1 = survived
 #Pclass - Passenger class; 1st class being the most expensive, 2nd class, is cheaper, 3rd class is cheapest
 #Sex - Sex of passenger, female or male
@@ -35,7 +27,7 @@ for(i in 1:length(titanic$Survived))
 #Fare - Passage fare in 1912 British Pounds
 #Survived_YN - a different expression of survival status
 
-
+#####Graphics#####
 #The first thing that's worth looking at is the breakdown by sex of the population of the ship in general. 
 titanic %>%
   filter(!is.na(Age)) %>%
