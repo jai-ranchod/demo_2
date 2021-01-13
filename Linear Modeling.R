@@ -116,6 +116,7 @@ corrplot(Matrix)
 
 
 
+
 #We see a variety of positive and negative corrleations appearing here, but again, we ultimately use the stepVIF() function to determine collinearity.
 Cars <- mtcars
 #Before creating our initial model we convert categorical predictors to data type "factor"
@@ -134,6 +135,8 @@ Transmission <- Cars$am
 Gears <- Cars$gear
 Carburetors <- Cars$carb
 
+
+
 Cars_Model <- lm(Mileage ~ Cylinders + Displacement + Horsepower + Rear_Axle_Ratio + Weight + Acceleration + Engine + Transmission + Gears + Carburetors)
 
 stepVIF(Cars_Model)
@@ -141,7 +144,7 @@ stepVIF(Cars_Model)
 #We do see featuers eliminated by the stepVIF() function in this case.  The below model contains the features remaining. Recall that the default threshold for the stepVIF() function is 10.
 #We can now be confident in the independence of our predictors moving forward.
 
-Cars_Model <- lm(Mileage ~ Horsepower + Rear_Axle_Ratio + Weight + Acceleration + Engine + Transmission + Gears + Carburetors)
+Cars_Model <- lm(Mileage ~ Displacement + Rear_Axle_Ratio + Acceleration + Engine + Transmission + Gears + Carburetors)
 summary(Cars_Model)
 
 #Here we see that there are predictors not meeting our p <= 0.05 significance threshold.  We therefore use a "backward selection" process to eliminate them.
@@ -154,13 +157,130 @@ summary(Cars_Model_2)
 par(mfrow = c(2,2))
 plot(Cars_Model_2)
 par(mfrow = c(1,1))
-
 #We again embrace the assumption of independent observations, as the fuel efficiency of one car would not affect that of another.
 #We notice that the qq plot in the upper right hand corner appears to confirm the normality assumption of linear modeling.
 #The residuals plot in the upper left, however, places some doubt on our linearity and homoscedasticity assumptions.
-#This could mean more data points are needed, or that fuel efficiency is not conducive to a linear model.  For now, we can say that we should be skeptical
-#of using a linear model to estimate fuel efficiency. 
+#We can investigate ways to make a better model by analyzing which predictors have approximately linear relationships with mpg.
+#####Investigating linearity of predictors - Cars Data Set#####
+#Here we invesitgate the possiblity of predictors having a non-linear relationship with our dependent variable, mpg.
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = gear))+
+  xlab("Gears")+
+  ylab("Actual MPG")
 
-#I am including this in the demontration to show my ability to evaluate a situation for whether or 
-#not a linear model may be appropriate
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = cyl))+
+  xlab("Cylinders")+
+  ylab("Actual MPG")
+
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = disp))+
+  xlab("Displacement")+
+  ylab("Actual MPG")
+
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = hp))+
+  xlab("Horsepower")+
+  ylab("Actual MPG")
+
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = drat))+
+  xlab("Rear Axle Ratio")+
+  ylab("Actual MPG")
+
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = wt))+
+  xlab("Weight")+
+  ylab("Actual MPG")
+
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = qsec))+
+  xlab("Quarter Mile Time")+
+  ylab("Actual MPG")
+
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = vs))+
+  xlab("Engine Shape")+
+  ylab("Actual MPG")
+
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = am))+
+  xlab("Transmission Shape")+
+  ylab("Actual MPG")
+
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = gear))+
+  xlab("Forward Gears")+
+  ylab("Actual MPG")
+
+mtcars %>% ggplot(aes(y = mpg))+
+  geom_point(aes(x = carb))+
+  xlab("Carburetors")+
+  ylab("Actual MPG")
+
+#From the above graphics, we see that displacement and gears do not have a clearly linear relationship with mpg.  As such, we introduce simple linear splines
+#into our model at naturally occuring knot locations.  
+#####Modeling with splines - Cars Data Set#####
+#We will go through the same steps we did when making a model without a spline
+Cars_Model <- lm(Mileage ~ Cylinders + lspline(Displacement,knots = 200) + Horsepower + Rear_Axle_Ratio + Weight + Acceleration + Engine + Transmission + lspline(Gears,knots = 4) + Carburetors)
+stepVIF(Cars_Model)
+Cars_Model <- lm(Mileage ~ lspline(Displacement, knots = 200) + Rear_Axle_Ratio + Acceleration + Engine + Transmission + lspline(Gears, knots = 4) + Carburetors)
+summary(Cars_Model)
+
+Cars_Model_2 <- step(Cars_Model)
+summary(Cars_Model_2)
+
+#Again, we examime the diagnostic plots to check the assumptions of linearity.
+par(mfrow = c(2,2))
+plot(Cars_Model_2)
+par(mfrow = c(1,1))
+
+#Here we see that we are now satisfactorily meeting our assumptions of linearity, heteroscedasticity, normality, and (again, presumably) independence.
+#####Cross Validation - Cars Data Set#####
+set.seed(1)
+mtcars <- na.omit(mtcars)
+rows <- sample(nrow(mtcars))
+shuffled <- mtcars[rows,]
+
+#Then we split our data set for 3-fold cross validation
+t <- nrow(shuffled)/3
+df1 <- shuffled[1:t,]
+df2 <- shuffled[(t+1):(2*t),]
+df3 <- shuffled[((2*t)+1):(3*t),]
+
+#starting first fold
+train1 <- bind_rows(df1,df2)
+test1 <- df3
+
+Cars_Model_2 <- lm(mpg ~ lspline(disp,knots = 200) + carb,
+                   data = train1)
+test1 <- test1 %>% mutate(predicted = predict(Cars_Model_2, newdata = test1, type = "response"), abs_error = abs(mpg-predicted))
+m1 <- mean(test1$abs_error)
+m1
+# starting second fold
+train2 <- bind_rows(df1,df3)
+test2 <- df2
+
+Cars_Model_2 <- lm(mpg ~ lspline(disp,knots = 200) + carb,
+                   data = train2)
+test2 <- test2 %>% mutate(predicted = predict(Cars_Model_2, newdata = test2, type = "response"), abs_error = abs(mpg-predicted))
+m2 <- mean(test2$abs_error)
+m2
+
+#starting third fold
+train3 <- bind_rows(df2,df3)
+test3 <- df1
+
+Cars_Model_2 <- lm(mpg ~ lspline(disp,knots = 200) + carb,
+                   data = train3)
+test3 <- test3 %>% mutate(predicted = predict(Cars_Model_2, newdata = test1, type = "response"), abs_error = abs(mpg-predicted))
+m3 <- mean(test3$abs_error)
+m3
+
+(m1+m2+m3)/3
+
+max(mtcars$mpg) - min(mtcars$mpg)
+#Here we see that over a range of 23.5, we are able to use our linear model to predict mpg with a mean error of ~2.4 mpg.  Further notice that 
+#the final set of predictors consists of one predictor from each dimension of our principal component analysis.  This makes sense as our predictors carry the
+#information from the two orthognal dimensions.
 
