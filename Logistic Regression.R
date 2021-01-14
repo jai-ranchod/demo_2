@@ -14,7 +14,7 @@ titanic <- titanic_train %>%
          Sex = factor(Sex))
 
 #making the sex column binary with male = 1
-titanic$Sex <- as.integer(titanic$Sex == "male")
+titanic$sex_binary <- as.integer(titanic$Sex == "male")
 
 
 #Survived - 0=Did not survive, 1 = survived
@@ -108,16 +108,18 @@ rows <- sample(nrow(titanic))
 shuffled <- titanic[rows,]
 
 #Then we split our data set for 3-fold cross validation
-t <- nrow(shuffled)/3
+t <- nrow(shuffled)/5
 df1 <- shuffled[1:t,]
 df2 <- shuffled[(t+1):(2*t),]
 df3 <- shuffled[((2*t)+1):(3*t),]
+df4 <- shuffled[((3*t)+1):(4*t),]
+df5 <- shuffled[((4*t)+1):(5*t),]
 
 #Beginning first fold
-train1 <- bind_rows(df1,df2)
-test1 <- df3
-test1 <- test1 %>% mutate(survived_numeric = as.numeric(Survived)-1)
+train1 <- bind_rows(df2,df3, df4, df5)
+test1 <- df1
 
+test1 <- test1 %>% mutate(survived_numeric = as.numeric(Survived)-1)
 
 accuracy_data_1 <- data.frame()
 
@@ -140,7 +142,7 @@ df_1 <- NA
 colnames(accuracy_data_1)[1] <- "Accuracy1"
 
 #Beginning second fold
-train2 <- bind_rows(df1,df3)
+train2 <- bind_rows(df1,df3, df4, df5)
 test2 <- df2
 test2 <- test2 %>% mutate(survived_numeric = as.numeric(Survived)-1)
 
@@ -166,8 +168,8 @@ for(i in 1:4)
 colnames(accuracy_data_2)[1] <- "Accuracy2"
 
 #Beginning third fold
-train3 <- bind_rows(df2,df3)
-test3 <- df1
+train3 <- bind_rows(df1,df2, df4, df5)
+test3 <- df3
 test3 <- test3 %>% mutate(survived_numeric = as.numeric(Survived)-1)
 
 
@@ -191,21 +193,80 @@ for(i in 1:4)
 }
 
 colnames(accuracy_data_3)[1] <- "Accuracy3"
+
+#Starting fourth fold
+train4 <- bind_rows(df1,df2, df3, df4)
+test4 <- df4
+test4 <- test4 %>% mutate(survived_numeric = as.numeric(Survived)-1)
+
+
+accuracy_data_4 <- data.frame()
+
+for(i in 1:4)
+{
+  
+  
+  model_4 <- glm(Survived ~ +SibSp + ns(Age, df = i) + Pclass + Parch + Fare,
+                 data = train4,
+                 family = binomial)
+  model_4 <- step(model_4, trace = FALSE)
+  
+  df_4 <- test4 %>% mutate(predicted_percent_survival = predict(newdata = test4, model_4, type = "response"))
+  df_4$predicted_percent_survival <- round(df_4$predicted_percent_survival)
+  df_4 <- df_4 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
+  accuracy_data_4[i,1] <- 1-(sum(df_4$diff)/nrow(df_4))
+  accuracy_data_4[i,2] <- i
+  df_4 <- NA
+}
+
+colnames(accuracy_data_4)[1] <- "Accuracy4"
+
+#Starting fifth fold
+
+train5 <- bind_rows(df1,df2, df3, df4)
+test5 <- df5
+test5 <- test5 %>% mutate(survived_numeric = as.numeric(Survived)-1)
+
+
+accuracy_data_5 <- data.frame()
+
+for(i in 1:4)
+{
+  
+  
+  model_5 <- glm(Survived ~ +SibSp + ns(Age, df = i) + Pclass + Parch + Fare,
+                 data = train5,
+                 family = binomial)
+  model_5 <- step(model_5, trace = FALSE)
+
+  df_5 <- test5 %>% mutate(predicted_percent_survival = predict(newdata = test5, model_5, type = "response"))
+  df_5$predicted_percent_survival <- round(df_5$predicted_percent_survival)
+  df_5 <- df_5 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
+  accuracy_data_5[i,1] <- 1-(sum(df_5$diff)/nrow(df_5))
+  accuracy_data_5[i,2] <- i
+  df_5 <- NA
+}
+
+colnames(accuracy_data_5)[1] <- "Accuracy5"
+
 max1<-accuracy_data_1 %>% filter(Accuracy1==max(Accuracy1))
 max2<-accuracy_data_2 %>% filter(Accuracy2==max(Accuracy2))
 max3<-accuracy_data_3 %>% filter(Accuracy3==max(Accuracy3))
+max4<-accuracy_data_4 %>% filter(Accuracy4==max(Accuracy4))
+max5<-accuracy_data_5 %>% filter(Accuracy5==max(Accuracy5))
 
 max1
 max2
 max3
-
+max4
+max5
 #Notice that 3 degrees of freedom consistently provides the most accurate results; this is what we will use going forward
 
 
 #####Addressing Colinearity with backward selection#####
 #Now that we know how many degrees of freedom we want to use in the spline model, we can continue building our models, one with a spline on
 #the "age" predictor, and one without.  We now address collinearity possibilities with
-#a backward selection process similar to what we used in linear modeling.
+#a backward selection process similar to what we used in linear modeling. (note, backward selection is the default for the "step()" function.)
 model_spline <- glm(Survived ~ SibSp + ns(Age, df = 3) + Pclass + Parch + Fare + sex_binary,
              data = titanic,
              family = binomial)
@@ -231,14 +292,16 @@ rows <- sample(nrow(titanic))
 shuffled <- titanic[rows,]
 
 #Then we split our data set for 3-fold cross validation
-t <- nrow(shuffled)/3
+t <- nrow(shuffled)/5
 df1 <- shuffled[1:t,]
 df2 <- shuffled[(t+1):(2*t),]
 df3 <- shuffled[((2*t)+1):(3*t),]
+df4 <- shuffled[((3*t)+1):(4*t),]
+df5 <- shuffled[((4*t)+1):(5*t),]
 
 #Beginning first fold
-train1 <- bind_rows(df1,df2)
-test1 <- df3
+train1 <- bind_rows(df2,df3, df4, df5)
+test1 <- df1
 
 model_spline_1 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + sex_binary,
               data = train1, 
@@ -265,7 +328,7 @@ accuracy1_spline <- 1-(sum(test1$diff_spline)/nrow(test1))
 
 
 #Beginning second fold
-train2 <- bind_rows(df1,df3)
+train2 <- bind_rows(df1,df3, df4, df5)
 test2 <- df2
 
 model_spline_2 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + sex_binary,
@@ -291,8 +354,8 @@ test2 <- test2 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_s
 accuracy2_no_spline <- 1-(sum(test2$diff_no_spline)/nrow(test2))
 accuracy2_spline <- 1-(sum(test2$diff_spline)/nrow(test2))
 #beginning third fold
-train3 <- bind_rows(df2,df3)
-test3 <- df1
+train3 <- bind_rows(df1,df2, df4, df5)
+test3 <- df3
 
 model_spline_3 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + sex_binary,
                       data = train3, 
@@ -317,16 +380,68 @@ test3 <- test3 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_s
 accuracy3_no_spline <- 1-(sum(test3$diff_no_spline)/nrow(test3))
 accuracy3_spline <- 1-(sum(test3$diff_spline)/nrow(test3))
 
+#Starting fourth fold
 
-#Note that all accuracy values have a 2-sided p-value well below 0.01 indicating the model allows us to reject the null hypothesis that we do not gain any predictive
-#power with the model
+train4 <- bind_rows(df1,df2, df3, df5)
+test4 <- df4
+
+model_spline_4 <- glm(Survived ~ SibSp + ns(Age, df = 3) + Pclass + sex_binary,
+                      data = train4, 
+                      family = binomial)
+test4 <- test4 %>% mutate(predicted_percent_survival_no_spline = predict(model_spline_4, newdata = test4, type = "response"))
+
+model_no_spline_4 <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
+                         data = train4, 
+                         family = binomial)
+test4 <- test4 %>% mutate(predicted_percent_survival_spline = predict(model_no_spline_4, newdata = test4, type = "response"))
+
+test4$predicted_percent_survival_no_spline <- round(test4$predicted_percent_survival_no_spline)
+test4$predicted_percent_survival_spline <- round(test4$predicted_percent_survival_spline)
+
+test4 <- test4 %>% mutate(survived_numeric = as.numeric(Survived)-1)
+
+test4 <- test4 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percent_survival_no_spline))
+test4 <- test4 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
+
+
+
+accuracy4_no_spline <- 1-(sum(test4$diff_no_spline)/nrow(test4))
+accuracy4_spline <- 1-(sum(test4$diff_spline)/nrow(test4))
+
+#starting fifth fold
+
+train5 <- bind_rows(df1,df2, df3, df4)
+test5 <- df5
+
+model_spline_5 <- glm(Survived ~ SibSp + ns(Age, df = 3) + Pclass + sex_binary,
+                      data = train5, 
+                      family = binomial)
+test5 <- test5 %>% mutate(predicted_percent_survival_no_spline = predict(model_spline_5, newdata = test5, type = "response"))
+
+model_no_spline_5 <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
+                         data = train5, 
+                         family = binomial)
+test5 <- test5 %>% mutate(predicted_percent_survival_spline = predict(model_no_spline_5, newdata = test5, type = "response"))
+
+test5$predicted_percent_survival_no_spline <- round(test5$predicted_percent_survival_no_spline)
+test5$predicted_percent_survival_spline <- round(test5$predicted_percent_survival_spline)
+
+test5 <- test5 %>% mutate(survived_numeric = as.numeric(Survived)-1)
+
+test5 <- test5 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percent_survival_no_spline))
+test5 <- test5 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
+
+
+
+accuracy5_no_spline <- 1-(sum(test5$diff_no_spline)/nrow(test5))
+accuracy5_spline <- 1-(sum(test5$diff_spline)/nrow(test5))
 
 #Evaluation
 #in general, we can feel confident that our model predicts who would survive or not survive the Titanic wreck with ~80% accuracy
-mean_accuracy_no_spline <- (accuracy1_no_spline + accuracy2_no_spline + accuracy3_no_spline)/3
+mean_accuracy_no_spline <- (accuracy1_no_spline + accuracy2_no_spline + accuracy3_no_spline + accuracy4_no_spline + accuracy5_no_spline)/5
 mean_accuracy_no_spline
 
-mean_accuracy_spline <- (accuracy1_spline + accuracy2_spline + accuracy3_spline)/3
+mean_accuracy_spline <- (accuracy1_spline + accuracy2_spline + accuracy3_spline + accuracy5_spline + accuracy5_spline)/5
 mean_accuracy_spline
 
 ##Using AIC as a means of comparing models

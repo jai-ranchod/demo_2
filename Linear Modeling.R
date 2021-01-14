@@ -114,9 +114,6 @@ corrplot(Matrix)
 
 #lets you see the correlation matrix graphic with the mpg vector
 
-
-
-
 #We see a variety of positive and negative corrleations appearing here, but again, we ultimately use the stepVIF() function to determine collinearity.
 Cars <- mtcars
 #Before creating our initial model we convert categorical predictors to data type "factor"
@@ -147,8 +144,7 @@ stepVIF(Cars_Model)
 Cars_Model <- lm(Mileage ~ Displacement + Rear_Axle_Ratio + Acceleration + Engine + Transmission + Gears + Carburetors)
 summary(Cars_Model)
 
-#Here we see that there are predictors not meeting our p <= 0.05 significance threshold.  We therefore use a "backward selection" process to eliminate them.
-#We remove the least significant predictor, re-run the model and repeat until all predictors are significant.  Below is the resulting model.
+#To optimize our model, we use a "backward selection" process to arrive at a final feature set.  Below is the resulting model.
 
 Cars_Model_2 <- step(Cars_Model)
 summary(Cars_Model_2)
@@ -243,14 +239,16 @@ rows <- sample(nrow(mtcars))
 shuffled <- mtcars[rows,]
 
 #Then we split our data set for 3-fold cross validation
-t <- nrow(shuffled)/3
+t <- nrow(shuffled)/5
 df1 <- shuffled[1:t,]
 df2 <- shuffled[(t+1):(2*t),]
 df3 <- shuffled[((2*t)+1):(3*t),]
+df4 <- shuffled[((3*t)+1):(4*t),]
+df5 <- shuffled[((4*t)+1):(5*t),]
 
 #starting first fold
-train1 <- bind_rows(df1,df2)
-test1 <- df3
+train1 <- bind_rows(df2,df3,df4,df5)
+test1 <- df1
 
 Cars_Model_2 <- lm(mpg ~ lspline(disp,knots = 200) + carb,
                    data = train1)
@@ -258,7 +256,7 @@ test1 <- test1 %>% mutate(predicted = predict(Cars_Model_2, newdata = test1, typ
 m1 <- mean(test1$abs_error)
 m1
 # starting second fold
-train2 <- bind_rows(df1,df3)
+train2 <- bind_rows(df1,df3, df4, df5)
 test2 <- df2
 
 Cars_Model_2 <- lm(mpg ~ lspline(disp,knots = 200) + carb,
@@ -268,19 +266,43 @@ m2 <- mean(test2$abs_error)
 m2
 
 #starting third fold
-train3 <- bind_rows(df2,df3)
-test3 <- df1
+train3 <- bind_rows(df1,df2, df4, df5)
+test3 <- df3
 
 Cars_Model_2 <- lm(mpg ~ lspline(disp,knots = 200) + carb,
                    data = train3)
-test3 <- test3 %>% mutate(predicted = predict(Cars_Model_2, newdata = test1, type = "response"), abs_error = abs(mpg-predicted))
+test3 <- test3 %>% mutate(predicted = predict(Cars_Model_2, newdata = test3, type = "response"), abs_error = abs(mpg-predicted))
 m3 <- mean(test3$abs_error)
 m3
+#starting fourth fold
+train4 <- bind_rows(df1,df2, df3, df5)
+test4 <- df4
 
-(m1+m2+m3)/3
+Cars_Model_2 <- lm(mpg ~ lspline(disp,knots = 200) + carb,
+                   data = train4)
+test4 <- test4 %>% mutate(predicted = predict(Cars_Model_2, newdata = test4, type = "response"), abs_error = abs(mpg-predicted))
+m4 <- mean(test4$abs_error)
+m4
+
+#starting fifth fold
+train5 <- bind_rows(df1,df2, df3, df4)
+test5 <- df5
+
+Cars_Model_2 <- lm(mpg ~ lspline(disp,knots = 200) + carb,
+                   data = train5)
+test5 <- test5 %>% mutate(predicted = predict(Cars_Model_2, newdata = test5, type = "response"), abs_error = abs(mpg-predicted))
+m5 <- mean(test5$abs_error)
+m5
+
+
+(m1+m2+m3+m4+m5)/5
 
 max(mtcars$mpg) - min(mtcars$mpg)
-#Here we see that over a range of 23.5, we are able to use our linear model to predict mpg with a mean error of ~2.4 mpg.  Further notice that 
+
+final_model <- lm(mpg ~ lspline(disp, knots = 200) + carb, data = mtcars)
+summary(final_model)
+#Here we see that over a range of 23.5, we are able to use our linear model to predict mpg with a mean error of ~2.25 mpg. We are able to explain about 84% of the 
+#variance in mpg with this model.  Further notice that 
 #the final set of predictors consists of one predictor from each dimension of our principal component analysis.  This makes sense as our predictors carry the
 #information from the two orthognal dimensions.
 
