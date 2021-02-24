@@ -126,18 +126,18 @@ accuracy_data_1 <- data.frame()
 for(i in 1:4)
 {
   
-
-model_1 <- glm(Survived ~ +SibSp + ns(Age, df = i) + Pclass + Parch + Fare,
-             data = train1,
-             family = binomial)
-model_1 <- step(model_1, trace = FALSE)
-
-df_1 <- test1 %>% mutate(predicted_percent_survival = predict(newdata = test1, model_1, type = "response"))
-df_1$predicted_percent_survival <- round(df_1$predicted_percent_survival)
-df_1 <- df_1 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
-accuracy_data_1[i,1] <- 1-(sum(df_1$diff)/nrow(df_1))
-accuracy_data_1[i,2] <- i
-df_1 <- NA
+  
+  model_1 <- glm(Survived ~ +SibSp + ns(Age, df = i) + Pclass + Parch + Fare,
+                 data = train1,
+                 family = binomial)
+  model_1 <- step(model_1, trace = FALSE)
+  
+  df_1 <- test1 %>% mutate(predicted_percent_survival = predict(newdata = test1, model_1, type = "response"))
+  df_1$predicted_percent_survival <- round(df_1$predicted_percent_survival)
+  df_1 <- df_1 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
+  accuracy_data_1[i,1] <- 1-(sum(df_1$diff)/nrow(df_1))
+  accuracy_data_1[i,2] <- i
+  df_1 <- NA
 }
 colnames(accuracy_data_1)[1] <- "Accuracy1"
 
@@ -238,7 +238,7 @@ for(i in 1:4)
                  data = train5,
                  family = binomial)
   model_5 <- step(model_5, trace = FALSE)
-
+  
   df_5 <- test5 %>% mutate(predicted_percent_survival = predict(newdata = test5, model_5, type = "response"))
   df_5$predicted_percent_survival <- round(df_5$predicted_percent_survival)
   df_5 <- df_5 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
@@ -268,8 +268,8 @@ max5
 #the "age" predictor, and one without.  We now address collinearity possibilities with
 #a backward selection process similar to what we used in linear modeling. (note, backward selection is the default for the "step()" function.)
 model_spline <- glm(Survived ~ SibSp + ns(Age, df = 3) + Pclass + Parch + Fare + sex_binary,
-             data = titanic,
-             family = binomial)
+                    data = titanic,
+                    family = binomial)
 model_spline <- step(model_spline, trace = FALSE)
 summary(model_spline)
 #Spline model features include; Siblings; Age; Class; Sex
@@ -280,7 +280,7 @@ model_no_spline <- glm(Survived ~ SibSp + Age + Pclass + Parch + Fare + sex_bina
 model_no_spline <- step(model_no_spline, trace = FALSE)
 summary(model_no_spline)
 
-#No-spline model features includel; siblings; Age; Class; Sex
+#No-spline model features included; siblings; Age; Class; Sex
 #########Cross-Validation/Comparing Models###################
 AIC(model_no_spline)
 AIC(model_spline)
@@ -304,13 +304,13 @@ train1 <- bind_rows(df2,df3, df4, df5)
 test1 <- df1
 
 model_spline_1 <- glm(Survived ~SibSp + ns(Age, df = 3) + Pclass + sex_binary,
-              data = train1, 
-             family = binomial)
+                      data = train1, 
+                      family = binomial)
 test1 <- test1 %>% mutate(predicted_percent_survival_no_spline = predict(model_spline_1, newdata = test1, type = "response"))
 
 model_no_spline_1 <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
-                      data = train1, 
-                      family = binomial)
+                         data = train1, 
+                         family = binomial)
 test1 <- test1 %>% mutate(predicted_percent_survival_spline = predict(model_no_spline_1, newdata = test1, type = "response"))
 
 test1$predicted_percent_survival_no_spline <- round(test1$predicted_percent_survival_no_spline)
@@ -322,6 +322,11 @@ test1 <- test1 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percen
 test1 <- test1 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
 
 
+sensitivity_no_spline1 <- test1 %>% filter(survived_numeric == 1) %>% summarise(sensitivity = sum(predicted_percent_survival_no_spline)/n())
+specificity_no_spline1 <- test1 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_no_spline))/n())
+
+sensitivity_spline1 <- test1 %>% filter(survived_numeric == 1) %>% summarise(sensivity = sum(predicted_percent_survival_spline)/n())
+specificity_spline1 <- test1 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_spline))/n())
 
 accuracy1_no_spline <- 1-(sum(test1$diff_no_spline)/nrow(test1))
 accuracy1_spline <- 1-(sum(test1$diff_spline)/nrow(test1))
@@ -350,6 +355,11 @@ test2 <- test2 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percen
 test2 <- test2 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
 
 
+sensitivity_no_spline2 <- test2 %>% filter(survived_numeric == 1) %>% summarise(sensitivity = sum(predicted_percent_survival_no_spline)/n())
+specificity_no_spline2 <- test2 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_no_spline))/n())
+
+sensitivity_spline2 <- test2 %>% filter(survived_numeric == 1) %>% summarise(sensivity = sum(predicted_percent_survival_spline)/n())
+specificity_spline2 <- test2 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_spline))/n())
 
 accuracy2_no_spline <- 1-(sum(test2$diff_no_spline)/nrow(test2))
 accuracy2_spline <- 1-(sum(test2$diff_spline)/nrow(test2))
@@ -376,6 +386,11 @@ test3 <- test3 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percen
 test3 <- test3 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
 
 
+sensitivity_no_spline3 <- test3 %>% filter(survived_numeric == 1) %>% summarise(sensitivity = sum(predicted_percent_survival_no_spline)/n())
+specificity_no_spline3 <- test3 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_no_spline))/n())
+
+sensitivity_spline3 <- test3 %>% filter(survived_numeric == 1) %>% summarise(sensivity = sum(predicted_percent_survival_spline)/n())
+specificity_spline3 <- test3 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_spline))/n())
 
 accuracy3_no_spline <- 1-(sum(test3$diff_no_spline)/nrow(test3))
 accuracy3_spline <- 1-(sum(test3$diff_spline)/nrow(test3))
@@ -404,6 +419,11 @@ test4 <- test4 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percen
 test4 <- test4 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
 
 
+sensitivity_no_spline4 <- test4 %>% filter(survived_numeric == 1) %>% summarise(sensitivity = sum(predicted_percent_survival_no_spline)/n())
+specificity_no_spline4 <- test4 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_no_spline))/n())
+
+sensitivity_spline4 <- test4 %>% filter(survived_numeric == 1) %>% summarise(sensivity = sum(predicted_percent_survival_spline)/n())
+specificity_spline4 <- test4 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_spline))/n())
 
 accuracy4_no_spline <- 1-(sum(test4$diff_no_spline)/nrow(test4))
 accuracy4_spline <- 1-(sum(test4$diff_spline)/nrow(test4))
@@ -432,50 +452,49 @@ test5 <- test5 %>% mutate(diff_no_spline = abs(survived_numeric-predicted_percen
 test5 <- test5 %>% mutate(diff_spline = abs(survived_numeric-predicted_percent_survival_spline))
 
 
+sensitivity_no_spline5 <- test5 %>% filter(survived_numeric == 1) %>% summarise(sensitivity = sum(predicted_percent_survival_no_spline)/n())
+specificity_no_spline5 <- test5 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_no_spline))/n())
+
+sensitivity_spline5 <- test5 %>% filter(survived_numeric == 1) %>% summarise(sensivity = sum(predicted_percent_survival_spline)/n())
+specificity_spline5 <- test5 %>% filter(survived_numeric == 0) %>% summarise(specificity = (n() - sum(predicted_percent_survival_spline))/n())
 
 accuracy5_no_spline <- 1-(sum(test5$diff_no_spline)/nrow(test5))
 accuracy5_spline <- 1-(sum(test5$diff_spline)/nrow(test5))
 
 #Evaluation
-#in general, we can feel confident that our model predicts who would survive or not survive the Titanic wreck with ~80% accuracy
+#in general, we can feel confident that our model predicts who would survive or not survive the Titanic wreck with ~80% accuracy;
+#however, given the relative prevalence of survivorship, it makes sense to compare sensitivity and specificity as well
 mean_accuracy_no_spline <- (accuracy1_no_spline + accuracy2_no_spline + accuracy3_no_spline + accuracy4_no_spline + accuracy5_no_spline)/5
 mean_accuracy_no_spline
 
 mean_accuracy_spline <- (accuracy1_spline + accuracy2_spline + accuracy3_spline + accuracy5_spline + accuracy5_spline)/5
 mean_accuracy_spline
 
-##Using AIC as a means of comparing models
+mean_specificity_no_spline <- (specificity_no_spline1 + specificity_no_spline2 + specificity_no_spline3 + specificity_no_spline4 + specificity_no_spline5)/5
+mean_specificity_no_spline
 
-#Notice both models are used to predict the same outcome on the same data set
-#Since we have a sufficiently large sample size and can show that the ratio of data points to predictors is greater than 40 we can use AIC as a 
-#means of comparing models
+mean_sensitivity_no_spline <- (sensitivity_no_spline1 + sensitivity_no_spline2 + sensitivity_no_spline3 + sensitivity_no_spline4 + sensitivity_no_spline5)/5
+mean_sensitivity_no_spline
 
-nrow(titanic)/4 > 40
+mean_Specificity_spline <- (specificity_spline1 + specificity_spline2 + specificity_spline3 + specificity_spline4 + specificity_spline5)/5
+mean_Specificity_spline
+
+mean_sensitivity_spline <- (sensitivity_spline1 + sensitivity_spline2 + sensitivity_spline3 + sensitivity_spline4 + sensitivity_spline5)/5
+mean_sensitivity_spline
+
+#The introduction of the spline has a higher accuracy, however, due to the prevalences of surviving and not surviving, we need to be wary of moving forward
+#with an overly specific model.  If we simply predict that everyone will note survive, we would have an accuracy of around 62%, with 100% specificity.
+#Given the trade-off in sensitivity, it makes sense to use the model with no spline, even though it technically has a slightly lower raw accuracy.
+#####Model Inteprretation#####
+
 model_no_spline <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
                        data = titanic, 
                        family = binomial)
-model_spline <- glm(Survived ~SibSp + ns(Age,3) + Pclass + sex_binary,
-                       data = titanic, 
-                       family = binomial)
-
-
-AIC(model_spline)
-exp((AIC(model_spline) - AIC(model_no_spline))/2)
-#The model without the spline is only 0.0141 times as likely as the model with the spline to be the model that minimizes out of sample error
-#the AIC criteria clearly favors the use of a spline
-
-
-#The models demonstrate very similar performance during cross validation; and since the AIC score favors the use of the spline on the "age" predictor, that
-#is the model we will use going forward
-#####Model Inteprretation#####
-
-model_spline <- glm(Survived ~SibSp + ns(Age,3) + Pclass + sex_binary,
-                         data = titanic, 
-                         family = binomial)
-summary(model_spline)
+summary(model_no_spline)
 
 #Recall "sex_binary is 1 for male, 0 for female
 #The log odds decrease as the number of siblings a passenger has increases
+#the log odds decrease, in general, as the age increases
 #The log odds of survival are lower for second class passengers as opposed to first class(the reference class) and the log odds of survival are MUCH
 #lower for passengers in 3rd class than first class
 #The log odds of survival are much lower for males than for females
@@ -483,50 +502,3 @@ summary(model_spline)
 #Notice that the results related to class and sex especially align with our analysis from the "Additional Data Visualizations" section
 #Also notice that the "fare" predictor was eliminated during the backward selection process for both models, this is likely because
 #that information is carried in the Pclass predictor.
-#Now we can graph predicted log odds versus age
-
-model_age <- glm(Survived ~ ns(Age,3),
-                 data = titanic,
-                 family = binomial)
-
-p1 <- predict(model_age, type = "response")
-
-p <- predict(model_spline, type = "response")
-t <- titanic$Age
-s <- ns(titanic$Age, 3)
-s1 <- s[,1]
-s2 <- s[,2]
-s3 <- s[,3]
-
-dfAge <- as.data.frame(cbind(t,p,p1,s1,s2,s3))
-
-colnames(dfAge)[1] <- "Age"
-colnames(dfAge)[2] <- "Predicted"
-colnames(dfAge)[3] <- "Predicted_Age"
-colnames(dfAge)[4] <- "S1"
-colnames(dfAge)[5] <- "S2"
-colnames(dfAge)[6] <- "S3"
-
-dfAge %>% ggplot(aes(x = Age))+
-  geom_point(aes(y = LO_Predicted))+
-  geom_smooth(aes(y = LO_Predicted))+
-  geom_point(aes(y = LO_Predicted_Age), color = "orange")+
-  xlab("Age")+
-  ylab("Predicted Log Odds of Survival")+
-  ggtitle("Predicted Log Odds of Survival")
-
-#In the above plot, the predicted log odds from the final model are in black (with regression in blue), the predicted log odds from a model using age with cubic
-#splines as the only feature are in orange.  In both the cases of the regression and the model with only the age spline, we see that there is an 
-#age range between approximately 20-45 where an increase in age actually increases the log odds of survival.  We also note that both the regression curve
-#and the predictions from the age-only model are only positive for ages below 10 years old, indicating that the under 10 age group is the only age group
-#more likely to survive than not survive.  Recall that this aligns with analysis done in the "Additional Data Visualizations" file.
-
-dfAge %>% ggplot(aes(x = Age))+
-  geom_line(aes(y = S1), color = "purple")+
-  geom_line(aes(y = s2), color = "blue")+
-  geom_line(aes(y = s3), color = "red")+
-  ylab("Spline Values")+
-  xlab("Age")+
-  ggtitle("Age Spline Basis Functions")
-#Finally, we show the basis functions for our age spline.
-
