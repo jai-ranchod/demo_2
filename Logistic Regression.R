@@ -485,7 +485,7 @@ mean_sensitivity_spline
 #The introduction of the spline has a higher accuracy, however, due to the prevalences of surviving and not surviving, we need to be wary of moving forward
 #with an overly specific model.  If we simply predict that everyone will note survive, we would have an accuracy of around 62%, with 100% specificity.
 #Given the trade-off in sensitivity, it makes sense to use the model with no spline, even though it technically has a slightly lower raw accuracy.
-#####Model Inteprretation#####
+#####Model Intepretation#####
 
 model_no_spline <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
                        data = titanic, 
@@ -498,6 +498,9 @@ summary(model_no_spline)
 #The log odds of survival are lower for second class passengers as opposed to first class(the reference class) and the log odds of survival are MUCH
 #lower for passengers in 3rd class than first class
 #The log odds of survival are much lower for males than for females
+#Recall that each feature increases or decrease in accordance with the logistic regression formula:
+#p = exp(a)/(1+exp(a))
+#where a = B_0 + B_1*x_1 + B_2*x_2...
 
 #Notice that the results related to class and sex especially align with our analysis from the "Additional Data Visualizations" section
 #Also notice that the "fare" predictor was eliminated during the backward selection process for both models, this is likely because
