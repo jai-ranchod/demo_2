@@ -107,7 +107,7 @@ set.seed(1)
 rows <- sample(nrow(titanic))
 shuffled <- titanic[rows,]
 
-#Then we split our data set for 3-fold cross validation
+#Then we split our data set for 5-fold cross validation
 t <- nrow(shuffled)/5
 df1 <- shuffled[1:t,]
 df2 <- shuffled[(t+1):(2*t),]
