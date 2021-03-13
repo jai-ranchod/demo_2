@@ -26,8 +26,7 @@ titanic$sex_binary <- as.integer(titanic$Sex == "male")
 #Fare - Passage fare in 1912 British Pounds
 #sex_binary - a different expression of Sex
 
-#First we need to perform some basic data preparation by removing NA's and re-coding factors to make it easier for us to keep track of.
-titanic <- na.omit(titanic)
+#First we need to perform some basic data preparation by removing NA's.
 
 #####Linearity-Logit Assumption Check#####
 #Breaking down data into train and test split
