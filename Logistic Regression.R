@@ -39,7 +39,7 @@ train <- titanic[-vec,]
 model <- glm(Survived ~., data = train, 
              family = binomial)
 
-#We need to generate a vector of probabilities associated with each row in order to perform daignostics ensuring we are meeting the assumptions of
+#We need to generate a vector of probabilities associated with each row in order to perform diagnostics ensuring we are meeting the assumptions of
 #logistic regression
 probabilities <- predict(model, type = "response")
 
@@ -60,10 +60,10 @@ ggplot(mydata, aes(logit, predictor.value))+
   facet_wrap(~predictors, scales = "free_y")
 #Conclusion: we may need to apply a spline to the "age" predictor.  The "fare" predictor does not appear to need a spline.  Therefore, we will proceed
 #with a model that DOES include a spline on the "age" predictor and one that does NOT include a spline on the "age" predictor.  We will then compare their
-#respective performances against cross-validation and see if the inclusion in a spline is justified.
+#respective performances via cross-validation and see if the inclusion of a spline is justified.
 #####Assumption of No Influential Outliers#####
 #Before we deal with the non-linearity of the age model, we have to investigate the possibility of influential outlier values.
-#First, let's look at Cook's distance for our most visaully noticeable possible outliers
+#First, let's look at Cook's distance for our most visually noticeable possible outliers.
 plot(model, which = 4,id.n = 8)
 
 #Now we pull the data for these points
@@ -80,7 +80,7 @@ ggplot(model.data, aes(index, .std.resid)) +
   ylim(c(-3,3))+
   scale_color_discrete(name = "Survival Status", labels = c("Did Not Survive", "Survived"))
 
-#We notice that we have no standardized residuals over absolute value of 3, so we can be confident that we do not have influential outliers
+#We notice that we have no standardized residuals over absolute value of 3, so we can be confident that we do not have influential outliers.
 ##########Introduction of Splines############
 
 
