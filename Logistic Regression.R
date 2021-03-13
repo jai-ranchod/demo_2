@@ -89,7 +89,7 @@ ggplot(model.data, aes(index, .std.resid)) +
 #of the piece-wise polynomial
 #We'll add one in the interest of exploring additional possibilities
 
-#Histrogram to provide some additional intuition about how many degrees of freedom may be appropriate
+#Histogram to provide some additional intuition about how many degrees of freedom may be appropriate
 titanic %>% ggplot(aes(x = Age))+
   geom_density()+
   xlab("Age")+
