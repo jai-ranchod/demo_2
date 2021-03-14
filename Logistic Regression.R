@@ -1,4 +1,4 @@
-#####Inittial Processing and Definitions#####
+#####Initial Processing and Definitions#####
 #Here we use a logistic regression model as a means of binary classification to predict who will survive and who will not survive the titanic wreck
 library(titanic)
 library(splines)
@@ -137,10 +137,16 @@ for(i in 1:4)
   df_1 <- df_1 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
   accuracy_data_1[i,1] <- 1-(sum(df_1$diff)/nrow(df_1))
   accuracy_data_1[i,2] <- i
+  accuracy_data_1[i,3] <- df_1 %>% filter(survived_numeric == 1) %>% summarize(sensitivity = sum(predicted_percent_survival)/n()) %>% pull(sensitivity)
+  accuracy_data_1[i,4] <- df_1 %>% filter(survived_numeric == 0) %>% summarize(specificity = 1-mean(predicted_percent_survival)) %>% pull(specificity)
+  
   df_1 <- NA
 }
 colnames(accuracy_data_1)[1] <- "Accuracy1"
-
+colnames(accuracy_data_1)[2] <- "Degrees of Freedom"
+colnames(accuracy_data_1)[3] <- "Sensitivity"
+colnames(accuracy_data_1)[4] <- "Specificity"
+                          
 #Beginning second fold
 train2 <- bind_rows(df1,df3, df4, df5)
 test2 <- df2
@@ -163,9 +169,15 @@ for(i in 1:4)
   df_2 <- df_2 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
   accuracy_data_2[i,1] <- 1-(sum(df_2$diff)/nrow(df_2))
   accuracy_data_2[i,2] <- i
+  accuracy_data_2[i,3] <- df_2 %>% filter(survived_numeric == 1) %>% summarize(sensitivity = sum(predicted_percent_survival)/n()) %>% pull(sensitivity)
+  accuracy_data_2[i,4] <- df_2 %>% filter(survived_numeric == 0) %>% summarize(specificity = 1-mean(predicted_percent_survival)) %>% pull(specificity)
+  
   df_2 <- NA
 }
 colnames(accuracy_data_2)[1] <- "Accuracy2"
+colnames(accuracy_data_2)[2] <- "Degrees of Freedom"
+colnames(accuracy_data_2)[3] <- "Sensitivity"
+colnames(accuracy_data_2)[4] <- "Specificity"
 
 #Beginning third fold
 train3 <- bind_rows(df1,df2, df4, df5)
@@ -189,10 +201,16 @@ for(i in 1:4)
   df_3 <- df_3 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
   accuracy_data_3[i,1] <- 1-(sum(df_3$diff)/nrow(df_3))
   accuracy_data_3[i,2] <- i
+  accuracy_data_3[i,3] <- df_3 %>% filter(survived_numeric == 1) %>% summarize(sensitivity = sum(predicted_percent_survival)/n()) %>% pull(sensitivity)
+  accuracy_data_3[i,4] <- df_3 %>% filter(survived_numeric == 0) %>% summarize(specificity = 1-mean(predicted_percent_survival)) %>% pull(specificity)
+  
   df_3 <- NA
 }
 
 colnames(accuracy_data_3)[1] <- "Accuracy3"
+colnames(accuracy_data_3)[2] <- "Degrees of Freedom"
+colnames(accuracy_data_3)[3] <- "Sensitivity"
+colnames(accuracy_data_3)[4] <- "Specificity"
 
 #Starting fourth fold
 train4 <- bind_rows(df1,df2, df3, df4)
@@ -216,10 +234,16 @@ for(i in 1:4)
   df_4 <- df_4 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
   accuracy_data_4[i,1] <- 1-(sum(df_4$diff)/nrow(df_4))
   accuracy_data_4[i,2] <- i
+  accuracy_data_4[i,3] <- df_4 %>% filter(survived_numeric == 1) %>% summarize(sensitivity = sum(predicted_percent_survival)/n()) %>% pull(sensitivity)
+  accuracy_data_4[i,4] <- df_4 %>% filter(survived_numeric == 0) %>% summarize(specificity = 1-mean(predicted_percent_survival)) %>% pull(specificity)
+  
   df_4 <- NA
 }
 
 colnames(accuracy_data_4)[1] <- "Accuracy4"
+colnames(accuracy_data_4)[2] <- "Degrees of Freedom"
+colnames(accuracy_data_4)[3] <- "Sensitivity"
+colnames(accuracy_data_4)[4] <- "Specificity"
 
 #Starting fifth fold
 
@@ -244,23 +268,38 @@ for(i in 1:4)
   df_5 <- df_5 %>% mutate(diff = abs(survived_numeric-predicted_percent_survival))
   accuracy_data_5[i,1] <- 1-(sum(df_5$diff)/nrow(df_5))
   accuracy_data_5[i,2] <- i
+  accuracy_data_5[i,3] <- df_5 %>% filter(survived_numeric == 1) %>% summarize(sensitivity = sum(predicted_percent_survival)/n()) %>% pull(sensitivity)
+  accuracy_data_5[i,4] <- df_5 %>% filter(survived_numeric == 0) %>% summarize(specificity = 1-mean(predicted_percent_survival)) %>% pull(specificity)
+  
   df_5 <- NA
 }
 
 colnames(accuracy_data_5)[1] <- "Accuracy5"
+colnames(accuracy_data_5)[2] <- "Degrees of Freedom"
+colnames(accuracy_data_5)[3] <- "Sensitivity"
+colnames(accuracy_data_5)[4] <- "Specificity"
+##Evaluating Cross-validation
 
-max1<-accuracy_data_1 %>% filter(Accuracy1==max(Accuracy1))
-max2<-accuracy_data_2 %>% filter(Accuracy2==max(Accuracy2))
-max3<-accuracy_data_3 %>% filter(Accuracy3==max(Accuracy3))
-max4<-accuracy_data_4 %>% filter(Accuracy4==max(Accuracy4))
-max5<-accuracy_data_5 %>% filter(Accuracy5==max(Accuracy5))
 
-max1
-max2
-max3
-max4
-max5
-#Notice that 3 degrees of freedom consistently provides the most accurate results; this is what we will use going forward
+SENS <- sapply(c(1:4), function(j){
+  Sensitivity_vec[j] <- (accuracy_data_1$Sensitivity[j] + accuracy_data_2$Sensitivity[j] + accuracy_data_3$Sensitivity[j] + accuracy_data_4$Sensitivity[j] + accuracy_data_5$Sensitivity[j])
+})
+Sensitivity <- as.data.frame(cbind(SENS, c(1:4)))
+Sensitivity
+
+SPC <- sapply(c(1:4), function(j){
+  Specificity_vec[j] <- (accuracy_data_1$Specificity[j] + accuracy_data_2$Specificity[j] + accuracy_data_3$Specificity[j] + accuracy_data_4$Specificity[j] + accuracy_data_5$Specificity[j])
+  })
+Specificity <- as.data.frame(cbind(SPC, c(1:4)))
+Specificity
+
+ACC <- sapply(c(1:4), function(j){
+  Specificity_vec[j] <- (accuracy_data_1$Accuracy1[j] + accuracy_data_2$Accuracy2[j] + accuracy_data_3$Accuracy3[j] + accuracy_data_4$Accuracy4[j] + accuracy_data_5$Accuracy5[j])
+})
+Accuracy <- as.data.frame(cbind(ACC, c(1:4)))
+Accuracy
+
+#Notice that the combination of sensitivity and specificity is optimized at 3 degrees of freedom, as is accuracy. Therefore, we will use 3 degrees of freedom in the spline going forward.
 
 
 #####Addressing Colinearity with backward selection#####
