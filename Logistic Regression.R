@@ -13,6 +13,7 @@ titanic <- titanic_train %>%
          Pclass = factor(Pclass),
          Sex = factor(Sex))
 
+titanic <- na.omit(titanic)
 #making the sex column binary with male = 1
 titanic$sex_binary <- as.integer(titanic$Sex == "male")
 
@@ -41,13 +42,13 @@ model <- glm(Survived ~., data = train,
 
 #We need to generate a vector of probabilities associated with each row in order to perform diagnostics ensuring we are meeting the assumptions of
 #logistic regression
-probabilities <- predict(model, type = "response")
+probabilities <- predict(model, newdata = train, type = "response")
 
 #First we check the assumption of linearity between continuous predictors and the outcome logit.  To do this we must select our numeric type predictors.
 my_data <- train %>% select(Age, Fare)
 numeric_predictors <- colnames(my_data)
 
-#Now we seperate out the predictors we have chosen along with their predicted percentage and logit
+#Now we separate out the predictors we have chosen along with their predicted percentage and logit
 mydata <- my_data %>%
   mutate(logit = log(probabilities/(1-probabilities))) %>%
   gather(key = "predictors", value = "predictor.value", -logit)
@@ -290,7 +291,7 @@ set.seed(3)
 rows <- sample(nrow(titanic))
 shuffled <- titanic[rows,]
 
-#Then we split our data set for 3-fold cross validation
+#Then we split our data set for 5-fold cross validation
 t <- nrow(shuffled)/5
 df1 <- shuffled[1:t,]
 df2 <- shuffled[(t+1):(2*t),]
