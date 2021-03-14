@@ -1,4 +1,4 @@
-#####Intitial Processing and Definitions#####
+#####Inittial Processing and Definitions#####
 #Here we use a logistic regression model as a means of binary classification to predict who will survive and who will not survive the titanic wreck
 library(titanic)
 library(splines)
@@ -6,7 +6,7 @@ library(broom)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
-#First we process the titatnic_train dataset to make it a little more logistic regression friendly
+#First we process the titanic_train data set to make it a little more logistic regression friendly
 titanic <- titanic_train %>%
   select(Survived, Pclass, Sex, Age, SibSp, Parch, Fare) %>%
   mutate(Survived = factor(Survived),
