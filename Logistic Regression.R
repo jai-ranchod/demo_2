@@ -500,15 +500,14 @@ specificity_spline5 <- test5 %>% filter(survived_numeric == 0) %>% summarise(spe
 accuracy5_no_spline <- 1-(sum(test5$diff_no_spline)/nrow(test5))
 accuracy5_spline <- 1-(sum(test5$diff_spline)/nrow(test5))
 
-#Evaluation
-#in general, we can feel confident that our model predicts who would survive or not survive the Titanic wreck with ~80% accuracy;
-#however, given the relative prevalence of survivorship, it makes sense to compare sensitivity and specificity as well
 
 #####PLEASE READ THIS#####
 
-#Before proceeding, it is also worth mentioning that similar accuracy can be found by simply making assumptions about survival rate based on class and 
-#sex as one can see in the "additional data visualizations" file.  This methodology provides a much lower sensitivity than this logistic regression model, however.
-#I am well aware of this, the purpose of this file is to illustrate the construction of a logistic regression model
+#Before proceeding, it is also worth mentioning that by simply making assumptions about survival rate based on class and 
+#sex, one can create a reasonably successful predictive model.  One can see this in the "additional data visualizations" file.  
+#This methodology provides a lower sensitivity than this logistic regression model, however and the tradeoff makes it less successful in ROC
+#and balanced accuracy.
+#I am well aware of this, the purpose of this file is to illustrate the construction of a logistic regression model.
 
 #####OK, keep going####
 
@@ -529,6 +528,11 @@ mean_Specificity_spline
 
 mean_sensitivity_spline <- (sensitivity_spline1 + sensitivity_spline2 + sensitivity_spline3 + sensitivity_spline4 + sensitivity_spline5)/5
 mean_sensitivity_spline
+
+#Evaluation
+#in general, we can feel confident that our model predicts who would survive or not survive the Titanic wreck with ~80% accuracy;
+#however, given the relative prevalence of survivorship, it makes sense to compare sensitivity and specificity as well
+
 
 #The introduction of the spline has a higher accuracy, however, due to the prevalences of surviving and not surviving, we need to be wary of moving forward
 #with an overly specific model.  If we simply predict that everyone will note survive, we would have an accuracy of around 62%, with 100% specificity.
