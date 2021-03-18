@@ -302,7 +302,7 @@ Accuracy
 #Notice that the combination of sensitivity and specificity is optimized at 3 degrees of freedom, as is accuracy. Therefore, we will use 3 degrees of freedom in the spline going forward.
 
 
-#####Addressing Colinearity with backward selection#####
+#####Addressing Collinearity with backward selection#####
 #Now that we know how many degrees of freedom we want to use in the spline model, we can continue building our models, one with a spline on
 #the "age" predictor, and one without.  We now address collinearity possibilities with
 #a backward selection process similar to what we used in linear modeling. (note, backward selection is the default for the "step()" function.)
@@ -503,6 +503,15 @@ accuracy5_spline <- 1-(sum(test5$diff_spline)/nrow(test5))
 #Evaluation
 #in general, we can feel confident that our model predicts who would survive or not survive the Titanic wreck with ~80% accuracy;
 #however, given the relative prevalence of survivorship, it makes sense to compare sensitivity and specificity as well
+
+#####PLEASE READ THIS#####
+
+#Before proceeding, it is also worth mentioning that similar accuracy can be found by simply making assumptions about survival rate based on class and 
+#sex as one can see in the "additional data visualizations" file.  This methodology provides a much lower sensitivity than this logistic regression model, however.
+#I am well aware of this, the purpose of this file is to illustrate the construction of a logistic regression model
+
+#####OK, keep going####
+
 mean_accuracy_no_spline <- (accuracy1_no_spline + accuracy2_no_spline + accuracy3_no_spline + accuracy4_no_spline + accuracy5_no_spline)/5
 mean_accuracy_no_spline
 
@@ -524,7 +533,7 @@ mean_sensitivity_spline
 #The introduction of the spline has a higher accuracy, however, due to the prevalences of surviving and not surviving, we need to be wary of moving forward
 #with an overly specific model.  If we simply predict that everyone will note survive, we would have an accuracy of around 62%, with 100% specificity.
 #Given the trade-off in sensitivity, it makes sense to use the model with no spline, even though it technically has a slightly lower raw accuracy.
-#####Model Intepretation#####
+#####Model Interpretation#####
 
 model_no_spline <- glm(Survived ~SibSp + Age + Pclass + sex_binary,
                        data = titanic, 
