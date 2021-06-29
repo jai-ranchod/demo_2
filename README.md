@@ -1,4 +1,6 @@
 # demo_2
-This repository is designed to demonstrate my data analysis capabilities in multiple ways.  The .R files are named
-by the kind of analysis they contain, and will contain R code with comments.  Datasets are also provided by name in this repository, or 
-are built into R.  A compiled document with code and images can be made available upon request.
+This repository holds the data files used in the demo_3 repository found here:
+
+https://github.com/jai-ranchod/demo_3/tree/main
+
+
